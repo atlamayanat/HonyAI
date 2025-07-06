@@ -1,0 +1,1 @@
+main ikinci commit için bu satırı yazıyorum.
