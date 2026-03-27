@@ -17,55 +17,295 @@ function getLevel(value: number): Level {
   return 'Yüksek';
 }
 
-function getLevelColor(level: Level): string {
-  if (level === 'Normal') return '#43A047';
-  if (level === 'Dikkat Edilmeli') return '#FB8C00';
-  return '#E53935';
+function getLevelConfig(level: Level) {
+  const configs = {
+    'Normal': { 
+      color: '#10B981', 
+      icon: '✅',
+      message: 'Harika! Değerleriniz normal aralıkta'
+    },
+    'Dikkat Edilmeli': { 
+      color: '#F59E0B', 
+      icon: '⚠️',
+      message: 'Dikkat! Değerlerinizi takip edin'
+    },
+    'Yüksek': { 
+      color: '#EF4444', 
+      icon: '🚨',
+      message: 'Acil! Hemen önlem alın'
+    }
+  };
+  return configs[level];
 }
 
 function Header() {
   return (
-    <View className="flex-row justify-between items-center bg-white px-4 py-3 border-b border-gray-200">
-      <View className="flex-row items-center">
-        <View className="w-10 h-10 rounded-full bg-green-50 justify-center items-center mr-2.5">
-          <Text className="text-lg">👤</Text>
+    <View style={{
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: '#FFFFFF',
+      paddingHorizontal: 24,
+      paddingVertical: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 4,
+      borderBottomWidth: 1,
+      borderBottomColor: '#F3F4F6'
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <View style={{
+          width: 48,
+          height: 48,
+          borderRadius: 24,
+          backgroundColor: '#10B981',
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginRight: 12,
+          shadowColor: '#10B981',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          elevation: 6
+        }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>A</Text>
         </View>
         <View>
-          <Text className="text-sm font-bold text-gray-800">Ahmet BÜYÜK</Text>
-          <Text className="text-xs text-gray-500">ID: 66357</Text>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#111827' }}>Ahmet BÜYÜK</Text>
+          <Text style={{ fontSize: 14, color: '#6B7280' }}>ID: 66357 • Tip 2 Diyabet</Text>
         </View>
       </View>
-      <Text className="text-xl font-extrabold text-green-700">honyAI</Text>
-    </View>
-  );
-}
-
-function GaugeBar({ level }: { level: Level }) {
-  return (
-    <View className="mt-1.5">
-      <View className="flex-row h-2.5 rounded-md overflow-hidden">
-        <View className="flex-1 h-2.5 bg-[#4CAF50]" />
-        <View className="flex-1 h-2.5 bg-[#FF9800]" />
-        <View className="flex-1 h-2.5 bg-[#F44336]" />
-      </View>
-      <View className="flex-row justify-between mt-1.5">
-        <Text className="text-[11px] font-semibold text-[#4CAF50]">Normal</Text>
-        <Text className="text-[11px] font-semibold text-[#FF9800]">Dikkat Edilmeli</Text>
-        <Text className="text-[11px] font-semibold text-[#F44336]">Yüksek</Text>
+      <View style={{ alignItems: 'flex-end' }}>
+        <Text style={{ fontSize: 24, fontWeight: '900', color: '#10B981' }}>hony</Text>
+        <Text style={{ fontSize: 12, color: '#059669', fontWeight: '600', marginTop: -4 }}>AI Health</Text>
       </View>
     </View>
   );
 }
 
-function GlucoseCard({ value, level }: { value: number; level: Level }) {
+function ModernGaugeBar({ level }: { level: Level }) {
+  const config = getLevelConfig(level);
+  
   return (
-    <View
-      className="rounded-2xl py-7 items-center mt-4 shadow-sm"
-      style={{ backgroundColor: getLevelColor(level), elevation: 4 }}
-    >
-      <Text className="text-white text-base font-bold mb-2">{'⚠️  ' + level}</Text>
-      <Text className="text-white text-[68px] font-extrabold leading-[72px]">{String(value)}</Text>
-      <Text className="text-white/85 text-base font-medium mt-1.5">mg/dL</Text>
+    <View style={{
+      marginTop: 16,
+      backgroundColor: '#FFFFFF',
+      borderRadius: 12,
+      padding: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+      borderWidth: 1,
+      borderColor: '#F3F4F6'
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+        <Text style={{ fontSize: 16, fontWeight: '600', color: '#374151' }}>Değer Aralığı</Text>
+        <View style={{ marginLeft: 'auto' }}>
+          <Text style={{ fontSize: 14, fontWeight: '500', color: config.color }}>
+            {config.icon} {level}
+          </Text>
+        </View>
+      </View>
+      
+      <View style={{ position: 'relative' }}>
+        <View style={{
+          flexDirection: 'row',
+          height: 12,
+          borderRadius: 6,
+          overflow: 'hidden',
+          backgroundColor: '#F3F4F6'
+        }}>
+          <View style={{ flex: 1, height: 12, backgroundColor: '#10B981' }} />
+          <View style={{ flex: 1, height: 12, backgroundColor: '#F59E0B' }} />
+          <View style={{ flex: 1, height: 12, backgroundColor: '#EF4444' }} />
+        </View>
+        
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          width: 4,
+          height: 12,
+          borderRadius: 2,
+          backgroundColor: config.color,
+          shadowColor: config.color,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.5,
+          shadowRadius: 4,
+          elevation: 4,
+          left: level === 'Normal' ? '16%' : level === 'Dikkat Edilmeli' ? '50%' : '83%'
+        }} />
+      </View>
+      
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 }}>
+        <Text style={{ fontSize: 12, fontWeight: '500', color: '#10B981' }}>0-140</Text>
+        <Text style={{ fontSize: 12, fontWeight: '500', color: '#F59E0B' }}>140-180</Text>
+        <Text style={{ fontSize: 12, fontWeight: '500', color: '#EF4444' }}>180+</Text>
+      </View>
+    </View>
+  );
+}
+
+function ModernGlucoseCard({ value, level }: { value: number; level: Level }) {
+  const config = getLevelConfig(level);
+  
+  return (
+    <View style={{ marginTop: 24 }}>
+      <View style={{
+        borderRadius: 16,
+        paddingHorizontal: 24,
+        paddingVertical: 32,
+        alignItems: 'center',
+        backgroundColor: config.color,
+        shadowColor: config.color,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 16,
+        elevation: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)'
+      }}>
+        <View style={{
+          backgroundColor: 'rgba(255,255,255,0.2)',
+          borderRadius: 20,
+          paddingHorizontal: 16,
+          paddingVertical: 8,
+          marginBottom: 16
+        }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: 'bold' }}>{config.message}</Text>
+        </View>
+        
+        <Text style={{ color: '#FFFFFF', fontSize: 72, fontWeight: '900', marginBottom: 8 }}>{value}</Text>
+        <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 18, fontWeight: '500' }}>mg/dL</Text>
+        
+        <View style={{
+          marginTop: 16,
+          backgroundColor: 'rgba(255,255,255,0.1)',
+          borderRadius: 20,
+          paddingHorizontal: 24,
+          paddingVertical: 8
+        }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '500' }}>
+            Son ölçüm: Bugün 14:30
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function QuickActions() {
+  const actions = [
+    { icon: '🔄', title: 'Yeniden Ölçüm', color: '#10B981' },
+    { icon: '📊', title: 'Geçmiş', color: '#3B82F6' },
+  ];
+
+  return (
+    <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
+      {actions.map((action, index) => (
+        <TouchableOpacity
+          key={index}
+          style={{
+            flex: 1,
+            backgroundColor: action.color,
+            borderRadius: 12,
+            paddingVertical: 16,
+            alignItems: 'center',
+            shadowColor: action.color,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 6
+          }}
+          activeOpacity={0.8}
+        >
+          <Text style={{ fontSize: 24, marginBottom: 4 }}>{action.icon}</Text>
+          <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600' }}>{action.title}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
+function RecommendationCards() {
+  const recommendations = [
+    { icon: '🍎', title: 'Beslenme', subtitle: 'Önerilen yemekler', color: '#F97316' },
+    { icon: '🏃‍♂️', title: 'Egzersiz', subtitle: 'Aktivite programı', color: '#3B82F6' },
+    { icon: '💧', title: 'Hidrasyon', subtitle: 'Su takibi', color: '#06B6D4' },
+    { icon: '😴', title: 'Uyku', subtitle: 'Dinlenme analizi', color: '#8B5CF6' },
+  ];
+
+  return (
+    <View style={{ marginTop: 24 }}>
+      <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#111827', marginBottom: 16 }}>Kişisel Öneriler</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+        {recommendations.map((item, index) => (
+          <TouchableOpacity
+            key={index}
+            style={{
+              width: '48%',
+              backgroundColor: item.color,
+              borderRadius: 12,
+              padding: 16,
+              shadowColor: item.color,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.2,
+              shadowRadius: 8,
+              elevation: 4
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={{ fontSize: 24, marginBottom: 8 }}>{item.icon}</Text>
+            <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: 'bold', marginBottom: 4 }}>{item.title}</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>{item.subtitle}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function ModernTabBar() {
+  const tabs = [
+    { icon: '🏠', label: 'Ana Sayfa', active: true },
+    { icon: '📊', label: 'Raporlar', active: false },
+    { icon: '🎯', label: 'Hedefler', active: false },
+    { icon: '⚙️', label: 'Ayarlar', active: false },
+  ];
+
+  return (
+    <View style={{
+      backgroundColor: '#FFFFFF',
+      borderTopWidth: 1,
+      borderTopColor: '#F3F4F6',
+      paddingHorizontal: 16,
+      paddingTop: 12,
+      paddingBottom: Platform.OS === 'ios' ? 24 : 12
+    }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+        {tabs.map((tab, index) => (
+          <TouchableOpacity key={index} style={{ alignItems: 'center', paddingVertical: 8 }} activeOpacity={0.7}>
+            <View style={{
+              padding: 8,
+              borderRadius: 20,
+              backgroundColor: tab.active ? '#F0FDF4' : 'transparent'
+            }}>
+              <Text style={{ fontSize: 20 }}>{tab.icon}</Text>
+            </View>
+            <Text style={{
+              fontSize: 12,
+              marginTop: 4,
+              color: tab.active ? '#10B981' : '#6B7280',
+              fontWeight: tab.active ? 'bold' : '500'
+            }}>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
     </View>
   );
 }
@@ -74,104 +314,46 @@ export default function App() {
   const glucoseValue = 220;
   const level = getLevel(glucoseValue);
 
-  const tabs = [
-    { icon: '🏠', label: 'Anasayfa', active: true },
-    { icon: '❤️', label: 'Sağlık', active: false },
-    { icon: '🔍', label: 'Arama', active: false },
-    { icon: '👤', label: 'Profil', active: false },
-    { icon: '⚙️', label: 'Ayarlar', active: false },
-  ];
-
   return (
     <SafeAreaView
-      className="flex-1 bg-[#F5F5F5]"
-      style={{ paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 }}
+      style={{
+        flex: 1,
+        backgroundColor: '#F9FAFB',
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0
+      }}
     >
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <Header />
 
       <ScrollView
-        contentContainerClassName="px-4 pb-8"
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="mt-5 mb-1">
-          <Text className="text-[15px] font-bold text-gray-800 mb-1.5">Bilgileriniz</Text>
-          <Text className="text-[13px] text-gray-600">Ahmet BÜYÜK / 20 / TİP2 D.</Text>
-        </View>
-
-        <View className="mt-5 mb-1">
-          <Text className="text-[15px] font-bold text-gray-800 mb-1.5">Değer Göstergesi</Text>
-          <GaugeBar level={level} />
-        </View>
-
-        <GlucoseCard value={glucoseValue} level={level} />
-
-        <View
-          className="bg-white rounded-xl p-3.5 mt-3.5 border border-gray-200 shadow-sm"
-          style={{ elevation: 2 }}
+        <ModernGaugeBar level={level} />
+        <ModernGlucoseCard value={glucoseValue} level={level} />
+        <QuickActions />
+        <RecommendationCards />
+        
+        <TouchableOpacity 
+          style={{
+            backgroundColor: '#111827',
+            borderRadius: 12,
+            paddingVertical: 16,
+            alignItems: 'center',
+            marginTop: 24,
+            shadowColor: '#111827',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 6
+          }}
+          activeOpacity={0.8}
         >
-          <Text className="text-sm text-gray-800 font-medium">{'⚡  Önerilen su seviyesi'}</Text>
-        </View>
-
-        <View className="flex-row mt-3.5 justify-between">
-          <TouchableOpacity
-            className="w-[48%] py-3.5 rounded-xl items-center shadow-sm bg-[#388E3C]"
-            style={{ elevation: 3 }}
-            activeOpacity={0.8}
-          >
-            <Text className="text-white text-sm font-bold">Yeniden Ölçüm</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="w-[48%] py-3.5 rounded-xl items-center shadow-sm bg-[#2E7D32]"
-            style={{ elevation: 3 }}
-            activeOpacity={0.8}
-          >
-            <Text className="text-white text-sm font-bold">Başlat</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View className="flex-row mt-3.5 justify-between">
-          <TouchableOpacity
-            className="w-[48%] bg-amber-50 rounded-xl py-5 items-center border border-amber-200 shadow-sm"
-            style={{ elevation: 2 }}
-            activeOpacity={0.8}
-          >
-            <Text className="text-2xl mb-2">🍴</Text>
-            <Text className="text-[13px] text-amber-900 font-semibold text-center">Yemek Önerisi</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="w-[48%] bg-amber-50 rounded-xl py-5 items-center border border-amber-200 shadow-sm"
-            style={{ elevation: 2 }}
-            activeOpacity={0.8}
-          >
-            <Text className="text-2xl mb-2">💧</Text>
-            <Text className="text-[13px] text-amber-900 font-semibold text-center">Egzersiz Önerisi</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity className="bg-gray-900 rounded-xl py-4 items-center mt-3.5" activeOpacity={0.8}>
-          <Text className="text-white text-[15px] font-bold">Daha fazla gör</Text>
+          <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }}>Detaylı Analiz</Text>
         </TouchableOpacity>
       </ScrollView>
 
-      <View
-        className={`flex-row bg-white border-t border-gray-200 py-2.5 ${
-          Platform.OS === 'ios' ? 'pb-5' : 'pb-2.5'
-        }`}
-      >
-        {tabs.map((tab) => (
-          <TouchableOpacity key={tab.label} className="flex-1 items-center" activeOpacity={0.7}>
-            <Text className="text-xl mb-1">{tab.icon}</Text>
-            <Text
-              className={`text-[10px] ${
-                tab.active ? 'text-green-700 font-bold' : 'text-gray-400 font-medium'
-              }`}
-            >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <ModernTabBar />
     </SafeAreaView>
   );
 }
