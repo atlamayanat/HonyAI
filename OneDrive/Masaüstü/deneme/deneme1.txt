@@ -1,3 +1,0 @@
-bu bir deneme satırıdır dikkate almayınız...!
-
-istenilen integer değer sağlandı...

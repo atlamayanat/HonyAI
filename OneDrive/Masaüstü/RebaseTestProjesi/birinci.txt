@@ -1,3 +1,0 @@
-main ikinci commit için bu satırı yazıyorum.
-
-mainde bir commit daha atacağız
