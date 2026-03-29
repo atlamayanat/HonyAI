@@ -1,5 +1,5 @@
 import React from 'react';
-import EmptyPage from '../components/EmptyPage';
+import EmptyPage from '../EmptyPage';
 
 function HealthPage() {
   return <EmptyPage tabName="Sağlık" icon="❤️" />;

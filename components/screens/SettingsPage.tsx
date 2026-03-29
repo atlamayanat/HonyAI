@@ -1,5 +1,5 @@
 import React from 'react';
-import EmptyPage from '../components/EmptyPage';
+import EmptyPage from '../EmptyPage';
 
 function SettingsPage() {
   return <EmptyPage tabName="Ayarlar" icon="⚙️" />;

@@ -1,10 +1,10 @@
 import React from 'react';
 import { ScrollView, View, Text, TouchableOpacity } from 'react-native';
-import ModernGaugeBar from '../components/home/ModernGaugeBar';
-import ModernGlucoseCard from '../components/home/ModernGlucoseCard';
-import QuickActions from '../components/home/QuickActions';
-import RecommendationCards from '../components/home/RecommendationCards';
-import { getLevel } from '../utils/helpers';
+import ModernGaugeBar from '../home/ModernGaugeBar';
+import ModernGlucoseCard from '../home/ModernGlucoseCard';
+import QuickActions from '../home/QuickActions';
+import RecommendationCards from '../home/RecommendationCards';
+import { getLevel } from '../../utils/helpers';
 
 function HomePage() {
   const glucoseValue = 220;

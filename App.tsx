@@ -7,11 +7,11 @@ import {
 
 import Header from './components/Header';
 import ModernTabBar from './components/ModernTabBar';
-import HomePage from './screens/HomePage';
-import HealthPage from './screens/HealthPage';
-import SearchPage from './screens/SearchPage';
-import ProfilePage from './screens/ProfilePage';
-import SettingsPage from './screens/SettingsPage';
+import HomePage from './components/screens/HomePage';
+import HealthPage from './components/screens/HealthPage';
+import SearchPage from './components/screens/SearchPage';
+import ProfilePage from './components/screens/ProfilePage';
+import SettingsPage from './components/screens/SettingsPage';
 import { TabName } from './types';
 
 export default function App() {
