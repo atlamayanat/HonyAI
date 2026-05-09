@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import { TabName } from '../types';
+import { TabName, User } from '../types';
 
 interface HeaderProps {
   currentTab: TabName;
+  user?: User | null;
 }
 
-function Header({ currentTab }: HeaderProps) {
+function Header({ currentTab, user }: HeaderProps) {
   const getHeaderTitle = () => {
     switch (currentTab) {
       case 'Ana Sayfa': return 'honyAI Health';
@@ -17,6 +18,10 @@ function Header({ currentTab }: HeaderProps) {
       default: return 'honyAI Health';
     }
   };
+
+  const name = user?.name ?? 'Ahmet BÜYÜK';
+  const initial = (name.trim()[0] || 'A').toUpperCase();
+  const idText = user ? `ID: ${user.id} • ${user.diabetesType}` : 'ID: 66357 • Tip 2 Diyabet';
 
   return (
     <View style={{
@@ -34,7 +39,7 @@ function Header({ currentTab }: HeaderProps) {
       borderBottomWidth: 1,
       borderBottomColor: '#F3F4F6'
     }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
         <View style={{
           width: 48,
           height: 48,
@@ -49,15 +54,15 @@ function Header({ currentTab }: HeaderProps) {
           shadowRadius: 8,
           elevation: 6
         }}>
-          <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>A</Text>
+          <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>{initial}</Text>
         </View>
-        <View>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#111827' }}>Ahmet BÜYÜK</Text>
-          <Text style={{ fontSize: 14, color: '#6B7280' }}>ID: 66357 • Tip 2 Diyabet</Text>
+        <View style={{ flexShrink: 1 }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#111827' }} numberOfLines={1}>{name}</Text>
+          <Text style={{ fontSize: 14, color: '#6B7280' }} numberOfLines={1}>{idText}</Text>
         </View>
       </View>
       <View style={{ alignItems: 'flex-end' }}>
-        <Text style={{ fontSize: 20, fontWeight: '900', color: '#10B981' }}>{getHeaderTitle()}</Text>
+        <Text style={{ fontSize: 16, fontWeight: '900', color: '#10B981' }}>{getHeaderTitle()}</Text>
       </View>
     </View>
   );

@@ -2,6 +2,12 @@ node_modules/
 .expo/
 dist/
 npm-debug.*
+
+# Backend
+backend/data.db
+backend/data.db-journal
+backend/data.db-wal
+backend/data.db-shm
 *.jks
 *.p8
 *.p12

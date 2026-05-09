@@ -1,16 +1,18 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { Level } from '../../types';
-import { getLevelConfig } from '../../utils/helpers';
+import { formatMeasuredAt, getLevelConfig } from '../../utils/helpers';
 
 interface ModernGlucoseCardProps {
   value: number;
   level: Level;
+  measuredAt?: string;
 }
 
-function ModernGlucoseCard({ value, level }: ModernGlucoseCardProps) {
+function ModernGlucoseCard({ value, level, measuredAt }: ModernGlucoseCardProps) {
   const config = getLevelConfig(level);
-  
+  const timeLabel = measuredAt ? formatMeasuredAt(measuredAt) : 'Henüz ölçüm yok';
+
   return (
     <View style={{ marginTop: 24 }}>
       <View style={{
@@ -36,10 +38,10 @@ function ModernGlucoseCard({ value, level }: ModernGlucoseCardProps) {
         }}>
           <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: 'bold' }}>{config.message}</Text>
         </View>
-        
+
         <Text style={{ color: '#FFFFFF', fontSize: 72, fontWeight: '900', marginBottom: 8 }}>{value}</Text>
         <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 18, fontWeight: '500' }}>mg/dL</Text>
-        
+
         <View style={{
           marginTop: 16,
           backgroundColor: 'rgba(255,255,255,0.1)',
@@ -48,7 +50,7 @@ function ModernGlucoseCard({ value, level }: ModernGlucoseCardProps) {
           paddingVertical: 8
         }}>
           <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '500' }}>
-            Son ölçüm: Bugün 14:30
+            Son ölçüm: {timeLabel}
           </Text>
         </View>
       </View>

@@ -1,11 +1,15 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { QuickAction } from '../../types';
 
-function QuickActions() {
-  const actions: QuickAction[] = [
-    { icon: '🔄', title: 'Yeniden Ölçüm', color: '#10B981' },
-    { icon: '📊', title: 'Geçmiş', color: '#3B82F6' },
+interface QuickActionsProps {
+  onAddFood?: () => void;
+  onAddExercise?: () => void;
+}
+
+function QuickActions({ onAddFood, onAddExercise }: QuickActionsProps) {
+  const actions = [
+    { icon: '🍽️', title: 'Besin Ekle',         color: '#10B981', onPress: onAddFood },
+    { icon: '🏃‍♂️', title: 'Hareket Verisi Ekle', color: '#3B82F6', onPress: onAddExercise },
   ];
 
   return (
@@ -13,6 +17,7 @@ function QuickActions() {
       {actions.map((action, index) => (
         <TouchableOpacity
           key={index}
+          onPress={action.onPress}
           style={{
             flex: 1,
             backgroundColor: action.color,
@@ -23,12 +28,14 @@ function QuickActions() {
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.3,
             shadowRadius: 8,
-            elevation: 6
+            elevation: 6,
           }}
           activeOpacity={0.8}
         >
           <Text style={{ fontSize: 24, marginBottom: 4 }}>{action.icon}</Text>
-          <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600' }}>{action.title}</Text>
+          <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', textAlign: 'center' }}>
+            {action.title}
+          </Text>
         </TouchableOpacity>
       ))}
     </View>
