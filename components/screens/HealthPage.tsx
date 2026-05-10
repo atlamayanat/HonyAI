@@ -18,6 +18,7 @@ import {
   getReadings,
 } from '../../api/client';
 import { formatMeasuredAt, getLevel, getLevelConfig } from '../../utils/helpers';
+import { useTheme } from '../../theme/ThemeContext';
 
 interface HealthPageProps {
   user: User | null;
@@ -28,6 +29,7 @@ interface HealthPageProps {
 type Range = 7 | 30;
 
 function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
+  const { theme } = useTheme();
   const [range, setRange] = useState<Range>(7);
   const [readings, setReadings] = useState<GlucoseReading[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -37,6 +39,7 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
   const [measureModal, setMeasureModal] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [activityTab, setActivityTab] = useState<'food' | 'exercise'>('food');
 
   const targetMax = user?.targetMax ?? 140;
 
@@ -151,18 +154,18 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
 
   const renderItem = ({ item }: { item: GlucoseReading }) => {
     const level = getLevel(item.value, targetMax);
-    const config = getLevelConfig(level);
+    const config = getLevelConfig(level, theme);
     return (
       <View style={{
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 12,
         paddingHorizontal: 16,
-        backgroundColor: '#FFF',
+        backgroundColor: theme.surface,
         borderRadius: 10,
         marginBottom: 8,
         borderWidth: 1,
-        borderColor: '#F3F4F6',
+        borderColor: theme.border,
       }}>
         <View style={{
           width: 10,
@@ -172,11 +175,11 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
           marginRight: 12,
         }} />
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827' }}>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: theme.textPrimary }}>
             {item.value}{' '}
-            <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500' }}>mg/dL</Text>
+            <Text style={{ fontSize: 12, color: theme.textSecondary, fontWeight: '500' }}>mg/dL</Text>
           </Text>
-          <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
+          <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>
             {formatMeasuredAt(item.measuredAt)}{item.note ? ` • ${item.note}` : ''}
           </Text>
         </View>
@@ -184,15 +187,23 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
           onPress={() => handleDeleteReading(item.id)}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={{ fontSize: 20, color: '#9CA3AF' }}>×</Text>
+          <Text style={{ fontSize: 20, color: theme.textMuted }}>×</Text>
         </TouchableOpacity>
       </View>
     );
   };
 
+  const statTokens = [
+    { label: 'Ortalama', value: stats?.avg, color: theme.accent,        soft: theme.accentSoft  },
+    { label: 'En düşük', value: stats?.min, color: theme.success,       soft: theme.successSoft },
+    { label: 'En yüksek',value: stats?.max, color: theme.danger,        soft: theme.dangerSoft  },
+    { label: 'Ölçüm',    value: stats?.count, color: theme.warning,     soft: theme.warningSoft },
+  ];
+
   return (
     <>
       <FlatList
+        style={{ backgroundColor: theme.bg }}
         data={readings}
         keyExtractor={(item) => String(item.id)}
         renderItem={renderItem}
@@ -206,20 +217,15 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: '#10B981',
+                backgroundColor: theme.accent,
                 paddingVertical: 14,
                 borderRadius: 12,
                 marginTop: 16,
-                shadowColor: '#10B981',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 6,
               }}
               activeOpacity={0.85}
             >
-              <Text style={{ color: '#FFF', fontSize: 16, marginRight: 6 }}>＋</Text>
-              <Text style={{ color: '#FFF', fontSize: 15, fontWeight: '700' }}>
+              <Text style={{ color: theme.accentText, fontSize: 16, marginRight: 6 }}>＋</Text>
+              <Text style={{ color: theme.accentText, fontSize: 15, fontWeight: '700' }}>
                 Yeni Ölçüm
               </Text>
             </TouchableOpacity>
@@ -227,7 +233,7 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
             {/* Range toggle */}
             <View style={{
               flexDirection: 'row',
-              backgroundColor: '#F3F4F6',
+              backgroundColor: theme.surfaceAlt,
               borderRadius: 10,
               padding: 4,
               marginTop: 16,
@@ -241,13 +247,13 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
                     flex: 1,
                     paddingVertical: 10,
                     borderRadius: 8,
-                    backgroundColor: range === r ? '#FFF' : 'transparent',
+                    backgroundColor: range === r ? theme.surface : 'transparent',
                     alignItems: 'center',
                   }}
                 >
                   <Text style={{
                     fontWeight: '600',
-                    color: range === r ? '#111827' : '#6B7280',
+                    color: range === r ? theme.textPrimary : theme.textSecondary,
                   }}>
                     Son {r} gün
                   </Text>
@@ -258,23 +264,18 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
             {/* Stats */}
             {stats && (
               <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
-                {[
-                  { label: 'Ortalama', value: stats.avg, color: '#3B82F6' },
-                  { label: 'En düşük', value: stats.min, color: '#10B981' },
-                  { label: 'En yüksek', value: stats.max, color: '#EF4444' },
-                  { label: 'Ölçüm', value: stats.count, color: '#8B5CF6' },
-                ].map((s) => (
+                {statTokens.map((s) => (
                   <View key={s.label} style={{
                     flex: 1,
-                    backgroundColor: '#FFF',
+                    backgroundColor: s.soft,
                     borderRadius: 10,
                     padding: 10,
                     alignItems: 'center',
                     borderWidth: 1,
-                    borderColor: '#F3F4F6',
+                    borderColor: theme.border,
                   }}>
                     <Text style={{ fontSize: 18, fontWeight: '800', color: s.color }}>{s.value}</Text>
-                    <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>{s.label}</Text>
+                    <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 2 }}>{s.label}</Text>
                   </View>
                 ))}
               </View>
@@ -283,14 +284,14 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
             {/* Chart */}
             {dailyAverages.some((d) => d.avg > 0) && (
               <View style={{
-                backgroundColor: '#FFF',
+                backgroundColor: theme.surface,
                 borderRadius: 12,
                 padding: 16,
                 marginBottom: 20,
                 borderWidth: 1,
-                borderColor: '#F3F4F6',
+                borderColor: theme.border,
               }}>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 12 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.textPrimary, marginBottom: 12 }}>
                   Günlük ortalama (mg/dL)
                 </Text>
                 <View style={{
@@ -302,7 +303,7 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
                   {dailyAverages.map((d) => {
                     const heightPct = d.avg > 0 ? (d.avg / chartMax) * 100 : 0;
                     const level = d.avg > 0 ? getLevel(d.avg, targetMax) : 'Normal';
-                    const color = d.avg === 0 ? '#E5E7EB' : getLevelConfig(level).color;
+                    const color = d.avg === 0 ? theme.surfaceAlt : getLevelConfig(level, theme).color;
                     return (
                       <View key={d.key} style={{ flex: 1, alignItems: 'center', height: '100%' }}>
                         <View style={{ flex: 1, justifyContent: 'flex-end', width: '100%' }}>
@@ -319,65 +320,116 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
                   })}
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
-                  <Text style={{ fontSize: 11, color: '#9CA3AF' }}>
+                  <Text style={{ fontSize: 11, color: theme.textMuted }}>
                     {dailyAverages[0]?.date.getDate()}.{(dailyAverages[0]?.date.getMonth() ?? 0) + 1}
                   </Text>
-                  <Text style={{ fontSize: 11, color: '#9CA3AF' }}>Bugün</Text>
+                  <Text style={{ fontSize: 11, color: theme.textMuted }}>Bugün</Text>
                 </View>
               </View>
             )}
 
-            {/* Activities */}
-            {activities.length > 0 && (
-              <>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 8 }}>
-                  Yemek & Egzersiz Geçmişi
-                </Text>
-                {activities.map((a) => {
-                  const isFood = a.type === 'food';
-                  return (
-                    <View key={a.id} style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      paddingVertical: 12,
-                      paddingHorizontal: 14,
-                      backgroundColor: '#FFF',
-                      borderRadius: 10,
-                      marginBottom: 8,
-                      borderWidth: 1,
-                      borderColor: '#F3F4F6',
-                    }}>
-                      <Text style={{ fontSize: 22, marginRight: 10 }}>
-                        {isFood ? '🍽️' : '🏃‍♂️'}
-                      </Text>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 14, fontWeight: '700', color: '#111827' }}>
-                          {a.name}
+            {/* Activities — Yemek / Egzersiz tabs */}
+            <Text style={{ fontSize: 16, fontWeight: '700', color: theme.textPrimary, marginBottom: 8 }}>
+              Geçmiş
+            </Text>
+            <View style={{
+              flexDirection: 'row',
+              backgroundColor: theme.surfaceAlt,
+              borderRadius: 10,
+              padding: 4,
+              marginBottom: 12,
+            }}>
+              {([
+                { id: 'food', label: '🍽️ Yemek' },
+                { id: 'exercise', label: '🏃‍♂️ Egzersiz' },
+              ] as const).map((t) => (
+                <TouchableOpacity
+                  key={t.id}
+                  onPress={() => setActivityTab(t.id)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10,
+                    borderRadius: 8,
+                    backgroundColor: activityTab === t.id ? theme.surface : 'transparent',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{
+                    fontWeight: '600',
+                    color: activityTab === t.id ? theme.textPrimary : theme.textSecondary,
+                  }}>
+                    {t.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {(() => {
+              const filtered = activities.filter((a) => a.type === activityTab);
+              if (filtered.length === 0) {
+                return (
+                  <View style={{
+                    paddingVertical: 24,
+                    alignItems: 'center',
+                    backgroundColor: theme.surface,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    borderColor: theme.border,
+                    marginBottom: 16,
+                  }}>
+                    <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
+                      Bu aralıkta {activityTab === 'food' ? 'yemek' : 'egzersiz'} kaydı yok
+                    </Text>
+                  </View>
+                );
+              }
+              return (
+                <>
+                  {filtered.map((a) => {
+                    const isFood = a.type === 'food';
+                    return (
+                      <View key={a.id} style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingVertical: 12,
+                        paddingHorizontal: 14,
+                        backgroundColor: theme.surface,
+                        borderRadius: 10,
+                        marginBottom: 8,
+                        borderWidth: 1,
+                        borderColor: theme.border,
+                      }}>
+                        <Text style={{ fontSize: 22, marginRight: 10 }}>
+                          {isFood ? '🍽️' : '🏃‍♂️'}
                         </Text>
-                        <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
-                          {formatMeasuredAt(a.occurredAt)} • {isFood ? '+' : '-'}
-                          {a.calories} kcal
-                          {a.glucoseDelta != null && (
-                            <Text style={{ color: a.glucoseDelta > 0 ? '#EF4444' : '#10B981' }}>
-                              {' '}• {a.glucoseDelta > 0 ? '+' : ''}{a.glucoseDelta} mg/dL
-                            </Text>
-                          )}
-                        </Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 14, fontWeight: '700', color: theme.textPrimary }}>
+                            {a.name}
+                          </Text>
+                          <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 2 }}>
+                            {formatMeasuredAt(a.occurredAt)} • {isFood ? '+' : '-'}
+                            {a.calories} kcal
+                            {a.glucoseDelta != null && (
+                              <Text style={{ color: a.glucoseDelta > 0 ? theme.danger : theme.success }}>
+                                {' '}• {a.glucoseDelta > 0 ? '+' : ''}{a.glucoseDelta} mg/dL
+                              </Text>
+                            )}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => handleDeleteActivity(a.id)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <Text style={{ fontSize: 20, color: theme.textMuted }}>×</Text>
+                        </TouchableOpacity>
                       </View>
-                      <TouchableOpacity
-                        onPress={() => handleDeleteActivity(a.id)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Text style={{ fontSize: 20, color: '#9CA3AF' }}>×</Text>
-                      </TouchableOpacity>
-                    </View>
-                  );
-                })}
-                <View style={{ height: 16 }} />
-              </>
-            )}
+                    );
+                  })}
+                  <View style={{ height: 16 }} />
+                </>
+              );
+            })()}
 
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 12 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: theme.textPrimary, marginBottom: 12 }}>
               Tüm ölçümler
             </Text>
           </View>
@@ -385,23 +437,23 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
         ListEmptyComponent={
           loading ? (
             <View style={{ paddingVertical: 60, alignItems: 'center' }}>
-              <ActivityIndicator size="large" color="#10B981" />
+              <ActivityIndicator size="large" color={theme.accent} />
             </View>
           ) : error ? (
             <View style={{
-              backgroundColor: '#FEF2F2',
+              backgroundColor: theme.dangerSoft,
               borderRadius: 12,
               padding: 16,
               borderWidth: 1,
-              borderColor: '#FECACA',
+              borderColor: theme.danger,
             }}>
-              <Text style={{ color: '#991B1B', fontWeight: '600' }}>Bağlantı hatası</Text>
-              <Text style={{ color: '#991B1B', fontSize: 13, marginTop: 4 }}>{error}</Text>
+              <Text style={{ color: theme.danger, fontWeight: '600' }}>Bağlantı hatası</Text>
+              <Text style={{ color: theme.textPrimary, fontSize: 13, marginTop: 4 }}>{error}</Text>
             </View>
           ) : (
             <View style={{ paddingVertical: 40, alignItems: 'center' }}>
               <Text style={{ fontSize: 40, marginBottom: 8 }}>📊</Text>
-              <Text style={{ color: '#6B7280' }}>Bu aralıkta ölçüm yok</Text>
+              <Text style={{ color: theme.textSecondary }}>Bu aralıkta ölçüm yok</Text>
             </View>
           )
         }
@@ -415,19 +467,19 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
       >
         <View style={{
           flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.5)',
+          backgroundColor: theme.overlay,
           justifyContent: 'center',
           paddingHorizontal: 24,
         }}>
           <View style={{
-            backgroundColor: '#FFF',
+            backgroundColor: theme.surface,
             borderRadius: 16,
             padding: 24,
           }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#111827', marginBottom: 8 }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.textPrimary, marginBottom: 8 }}>
               Yeni Ölçüm
             </Text>
-            <Text style={{ color: '#6B7280', fontSize: 13, marginBottom: 16 }}>
+            <Text style={{ color: theme.textSecondary, fontSize: 13, marginBottom: 16 }}>
               Kan şekeri değerinizi mg/dL cinsinden girin.
             </Text>
             <TextInput
@@ -435,15 +487,16 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
               onChangeText={setInputValue}
               keyboardType="numeric"
               placeholder="Örn. 120"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textMuted}
               style={{
                 borderWidth: 1,
-                borderColor: '#D1D5DB',
+                borderColor: theme.border,
+                backgroundColor: theme.surfaceAlt,
                 borderRadius: 10,
                 paddingHorizontal: 14,
                 paddingVertical: 12,
                 fontSize: 18,
-                color: '#111827',
+                color: theme.textPrimary,
               }}
               autoFocus
             />
@@ -457,11 +510,11 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
                   flex: 1,
                   paddingVertical: 12,
                   borderRadius: 10,
-                  backgroundColor: '#F3F4F6',
+                  backgroundColor: theme.surfaceAlt,
                   alignItems: 'center',
                 }}
               >
-                <Text style={{ color: '#374151', fontWeight: '600' }}>İptal</Text>
+                <Text style={{ color: theme.textPrimary, fontWeight: '600' }}>İptal</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSubmitReading}
@@ -470,12 +523,12 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
                   flex: 1,
                   paddingVertical: 12,
                   borderRadius: 10,
-                  backgroundColor: '#10B981',
+                  backgroundColor: theme.accent,
                   alignItems: 'center',
                   opacity: submitting ? 0.6 : 1,
                 }}
               >
-                <Text style={{ color: '#FFF', fontWeight: '600' }}>
+                <Text style={{ color: theme.accentText, fontWeight: '600' }}>
                   {submitting ? 'Kaydediliyor...' : 'Kaydet'}
                 </Text>
               </TouchableOpacity>

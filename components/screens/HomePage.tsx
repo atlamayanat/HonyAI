@@ -12,11 +12,13 @@ import ModernGlucoseCard from '../home/ModernGlucoseCard';
 import QuickActions from '../home/QuickActions';
 import RecommendationCards from '../home/RecommendationCards';
 import StepsCard from '../home/StepsCard';
+import WaterCard from '../home/WaterCard';
 import AddFoodModal from '../modals/AddFoodModal';
 import AddExerciseModal from '../modals/AddExerciseModal';
 import { getLevel } from '../../utils/helpers';
 import { getLatestReading } from '../../api/client';
 import { ActivityResponse, GlucoseReading, TabName, User } from '../../types';
+import { useTheme } from '../../theme/ThemeContext';
 
 interface HomePageProps {
   user: User | null;
@@ -26,6 +28,7 @@ interface HomePageProps {
 }
 
 function HomePage({ user, onNavigate, refreshKey, onDataChanged }: HomePageProps) {
+  const { theme } = useTheme();
   const [latest, setLatest] = useState<GlucoseReading | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +68,6 @@ function HomePage({ user, onNavigate, refreshKey, onDataChanged }: HomePageProps
   }, [animatedValue]);
 
   const handleActivityAdded = (response: ActivityResponse) => {
-    // Anında animasyonlu güncelleme — backend'i de senkron tutmak için onDataChanged'i çağır.
     Animated.timing(animatedValue, {
       toValue: response.newGlucose,
       duration: 900,
@@ -77,7 +79,6 @@ function HomePage({ user, onNavigate, refreshKey, onDataChanged }: HomePageProps
       measuredAt: response.activity.occurredAt,
       note: response.activity.name,
     } : prev);
-    // Refresh diğer ekranlara propagate olsun
     setTimeout(() => onDataChanged(), 950);
   };
 
@@ -88,43 +89,43 @@ function HomePage({ user, onNavigate, refreshKey, onDataChanged }: HomePageProps
   return (
     <>
       <ScrollView
+        style={{ backgroundColor: theme.bg }}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
       >
         {loading ? (
           <View style={{ paddingVertical: 80, alignItems: 'center' }}>
-            <ActivityIndicator size="large" color="#10B981" />
-            <Text style={{ marginTop: 12, color: '#6B7280' }}>Yükleniyor...</Text>
+            <ActivityIndicator size="large" color={theme.accent} />
+            <Text style={{ marginTop: 12, color: theme.textSecondary }}>Yükleniyor...</Text>
           </View>
         ) : error ? (
           <View style={{
             marginTop: 24,
-            backgroundColor: '#FEF2F2',
+            backgroundColor: theme.dangerSoft,
             borderRadius: 12,
             padding: 16,
             borderWidth: 1,
-            borderColor: '#FECACA',
+            borderColor: theme.danger,
           }}>
-            <Text style={{ color: '#991B1B', fontWeight: '600', marginBottom: 4 }}>
+            <Text style={{ color: theme.danger, fontWeight: '600', marginBottom: 4 }}>
               Bağlantı hatası
             </Text>
-            <Text style={{ color: '#991B1B', fontSize: 13 }}>{error}</Text>
+            <Text style={{ color: theme.textPrimary, fontSize: 13 }}>{error}</Text>
             <TouchableOpacity
               onPress={load}
               style={{
                 marginTop: 12,
-                backgroundColor: '#EF4444',
+                backgroundColor: theme.danger,
                 borderRadius: 8,
                 paddingVertical: 10,
                 alignItems: 'center',
               }}
             >
-              <Text style={{ color: '#FFF', fontWeight: '600' }}>Tekrar dene</Text>
+              <Text style={{ color: theme.textOnDark, fontWeight: '600' }}>Tekrar dene</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <>
-            <StepsCard refreshKey={refreshKey} />
             <ModernGaugeBar level={level} targetMax={targetMax} />
             <ModernGlucoseCard
               value={displayValue || value}
@@ -135,25 +136,22 @@ function HomePage({ user, onNavigate, refreshKey, onDataChanged }: HomePageProps
               onAddFood={() => setFoodModal(true)}
               onAddExercise={() => setExerciseModal(true)}
             />
-            <RecommendationCards />
+            <StepsCard refreshKey={refreshKey} />
+            <WaterCard refreshKey={refreshKey} onChanged={onDataChanged} />
+            <RecommendationCards onNavigate={onNavigate} />
 
             <TouchableOpacity
               onPress={() => onNavigate('Sağlık')}
               style={{
-                backgroundColor: '#111827',
+                backgroundColor: theme.inverse,
                 borderRadius: 12,
                 paddingVertical: 16,
                 alignItems: 'center',
                 marginTop: 24,
-                shadowColor: '#111827',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 6,
               }}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
-              <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }}>
+              <Text style={{ color: theme.inverseText, fontSize: 16, fontWeight: 'bold' }}>
                 Detaylı Analiz
               </Text>
             </TouchableOpacity>

@@ -11,8 +11,11 @@ import {
 } from 'react-native';
 import { Settings } from '../../types';
 import { getSettings, updateSettings } from '../../api/client';
+import { useTheme } from '../../theme/ThemeContext';
+import { ThemeTokens, radius, spacing } from '../../theme/tokens';
 
 function SettingsPage() {
+  const { theme, setMode } = useTheme();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +28,7 @@ function SettingsPage() {
     try {
       const s = await getSettings();
       setSettings(s);
+      setMode(s.darkMode ? 'dark' : 'light');
       const padded = [...s.reminderTimes];
       while (padded.length < 3) padded.push('');
       setReminderInputs(padded.slice(0, 3));
@@ -33,7 +37,7 @@ function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setMode]);
 
   useEffect(() => {
     load();
@@ -43,12 +47,18 @@ function SettingsPage() {
     if (!settings) return;
     const optimistic = { ...settings, ...patch };
     setSettings(optimistic);
+    if (patch.darkMode !== undefined) {
+      setMode(patch.darkMode ? 'dark' : 'light');
+    }
     setSaving(true);
     try {
       const saved = await updateSettings(patch);
       setSettings(saved);
     } catch (e: any) {
       setSettings(settings);
+      if (patch.darkMode !== undefined) {
+        setMode(settings.darkMode ? 'dark' : 'light');
+      }
       Alert.alert('Kaydedilemedi', e?.message || 'Sunucu hatası');
     } finally {
       setSaving(false);
@@ -68,35 +78,35 @@ function SettingsPage() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#10B981" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.bg }}>
+        <ActivityIndicator size="large" color={theme.accent} />
       </View>
     );
   }
 
   if (error || !settings) {
     return (
-      <View style={{ padding: 16 }}>
+      <View style={{ flex: 1, padding: spacing.lg, backgroundColor: theme.bg }}>
         <View style={{
-          backgroundColor: '#FEF2F2',
-          borderRadius: 12,
-          padding: 16,
+          backgroundColor: theme.dangerSoft,
+          borderRadius: radius.md,
+          padding: spacing.lg,
           borderWidth: 1,
-          borderColor: '#FECACA',
+          borderColor: theme.danger,
         }}>
-          <Text style={{ color: '#991B1B', fontWeight: '600' }}>Ayarlar yüklenemedi</Text>
-          <Text style={{ color: '#991B1B', fontSize: 13, marginTop: 4 }}>{error}</Text>
+          <Text style={{ color: theme.danger, fontWeight: '700', fontSize: 15 }}>Ayarlar yüklenemedi</Text>
+          <Text style={{ color: theme.textSecondary, fontSize: 13, marginTop: 4 }}>{error}</Text>
           <TouchableOpacity
             onPress={load}
             style={{
-              marginTop: 12,
-              backgroundColor: '#EF4444',
-              borderRadius: 8,
+              marginTop: spacing.md,
+              backgroundColor: theme.danger,
+              borderRadius: radius.sm,
               paddingVertical: 10,
               alignItems: 'center',
             }}
           >
-            <Text style={{ color: '#FFF', fontWeight: '600' }}>Tekrar dene</Text>
+            <Text style={{ color: theme.textOnDark, fontWeight: '600' }}>Tekrar dene</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -104,74 +114,80 @@ function SettingsPage() {
   }
 
   return (
-    <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}>
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827', marginTop: 16, marginBottom: 12 }}>
-        Genel
-      </Text>
+    <ScrollView
+      style={{ backgroundColor: theme.bg }}
+      contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl }}
+    >
+      <SectionTitle theme={theme}>Genel</SectionTitle>
 
-      <View style={cardStyle}>
+      <Card theme={theme}>
         <Row
+          theme={theme}
           title="Bildirimler"
           subtitle="Ölçüm hatırlatıcıları"
           right={
             <Switch
               value={settings.remindersEnabled}
               onValueChange={(v) => persist({ remindersEnabled: v })}
-              trackColor={{ true: '#10B981', false: '#D1D5DB' }}
+              trackColor={{ true: theme.accent, false: theme.trackOff }}
+              thumbColor={theme.surface}
             />
           }
         />
         <Row
+          theme={theme}
           title="Koyu Mod"
-          subtitle="(Demo için yer tutucu)"
+          subtitle="Arayüzü koyu temaya geçir"
           right={
             <Switch
               value={settings.darkMode}
               onValueChange={(v) => persist({ darkMode: v })}
-              trackColor={{ true: '#10B981', false: '#D1D5DB' }}
+              trackColor={{ true: theme.accent, false: theme.trackOff }}
+              thumbColor={theme.surface}
             />
           }
           last
         />
-      </View>
+      </Card>
 
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827', marginTop: 24, marginBottom: 12 }}>
-        Dil
-      </Text>
-      <View style={cardStyle}>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {(['tr', 'en'] as const).map((lang) => (
-            <TouchableOpacity
-              key={lang}
-              onPress={() => persist({ language: lang })}
-              style={{
-                flex: 1,
-                paddingVertical: 12,
-                borderRadius: 10,
-                backgroundColor: settings.language === lang ? '#10B981' : '#F3F4F6',
-                alignItems: 'center',
-              }}
-            >
-              <Text style={{
-                color: settings.language === lang ? '#FFF' : '#374151',
-                fontWeight: '600',
-              }}>
-                {lang === 'tr' ? '🇹🇷 Türkçe' : '🇬🇧 English'}
-              </Text>
-            </TouchableOpacity>
-          ))}
+      <SectionTitle theme={theme}>Dil</SectionTitle>
+      <Card theme={theme}>
+        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          {(['tr', 'en'] as const).map((lang) => {
+            const active = settings.language === lang;
+            return (
+              <TouchableOpacity
+                key={lang}
+                onPress={() => persist({ language: lang })}
+                style={{
+                  flex: 1,
+                  paddingVertical: spacing.md,
+                  borderRadius: radius.sm,
+                  backgroundColor: active ? theme.accent : theme.surfaceAlt,
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: active ? theme.accent : theme.border,
+                }}
+              >
+                <Text style={{
+                  color: active ? theme.accentText : theme.textPrimary,
+                  fontWeight: '600',
+                }}>
+                  {lang === 'tr' ? '🇹🇷 Türkçe' : '🇬🇧 English'}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-      </View>
+      </Card>
 
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827', marginTop: 24, marginBottom: 12 }}>
-        Ölçüm Hatırlatıcıları
-      </Text>
-      <View style={cardStyle}>
-        <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>
+      <SectionTitle theme={theme}>Ölçüm Hatırlatıcıları</SectionTitle>
+      <Card theme={theme}>
+        <Text style={{ fontSize: 12, color: theme.textSecondary, marginBottom: spacing.md }}>
           Saat formatı: HH:MM (örn. 08:00, 13:30)
         </Text>
         {reminderInputs.map((val, idx) => (
-          <View key={idx} style={{ marginBottom: 8 }}>
+          <View key={idx} style={{ marginBottom: spacing.sm }}>
             <TextInput
               value={val}
               onChangeText={(text) => {
@@ -180,15 +196,16 @@ function SettingsPage() {
                 setReminderInputs(next);
               }}
               placeholder={`Hatırlatıcı ${idx + 1} — örn. ${['08:00', '13:00', '20:00'][idx]}`}
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textMuted}
               style={{
                 borderWidth: 1,
-                borderColor: '#D1D5DB',
-                borderRadius: 8,
-                paddingHorizontal: 12,
+                borderColor: theme.border,
+                backgroundColor: theme.surfaceAlt,
+                borderRadius: radius.sm,
+                paddingHorizontal: spacing.md,
                 paddingVertical: 10,
                 fontSize: 15,
-                color: '#111827',
+                color: theme.textPrimary,
               }}
             />
           </View>
@@ -197,32 +214,61 @@ function SettingsPage() {
           onPress={saveReminderTimes}
           disabled={saving}
           style={{
-            marginTop: 8,
-            paddingVertical: 12,
-            borderRadius: 10,
-            backgroundColor: '#10B981',
+            marginTop: spacing.sm,
+            paddingVertical: spacing.md,
+            borderRadius: radius.sm,
+            backgroundColor: theme.accent,
             alignItems: 'center',
             opacity: saving ? 0.6 : 1,
           }}
         >
-          <Text style={{ color: '#FFF', fontWeight: '600' }}>
+          <Text style={{ color: theme.accentText, fontWeight: '600' }}>
             {saving ? 'Kaydediliyor...' : 'Hatırlatıcıları Kaydet'}
           </Text>
         </TouchableOpacity>
-      </View>
+      </Card>
 
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827', marginTop: 24, marginBottom: 12 }}>
-        Hakkında
-      </Text>
-      <View style={cardStyle}>
-        <Row title="Uygulama" subtitle="HoneyAI Health" right={null} />
-        <Row title="Sürüm" subtitle="1.0.0 (Demo)" right={null} last />
-      </View>
+      <SectionTitle theme={theme}>Hakkında</SectionTitle>
+      <Card theme={theme}>
+        <Row theme={theme} title="Uygulama" subtitle="HoneyAI Health" right={null} />
+        <Row theme={theme} title="Sürüm" subtitle="1.0.0 (Demo)" right={null} last />
+      </Card>
     </ScrollView>
   );
 }
 
-function Row({ title, subtitle, right, last }: {
+function SectionTitle({ theme, children }: { theme: ThemeTokens; children: React.ReactNode }) {
+  return (
+    <Text style={{
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.textSecondary,
+      marginTop: spacing.xl,
+      marginBottom: spacing.sm,
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+    }}>
+      {children}
+    </Text>
+  );
+}
+
+function Card({ theme, children }: { theme: ThemeTokens; children: React.ReactNode }) {
+  return (
+    <View style={{
+      backgroundColor: theme.surface,
+      borderRadius: radius.md,
+      padding: spacing.lg,
+      borderWidth: 1,
+      borderColor: theme.border,
+    }}>
+      {children}
+    </View>
+  );
+}
+
+function Row({ theme, title, subtitle, right, last }: {
+  theme: ThemeTokens;
   title: string;
   subtitle?: string;
   right: React.ReactNode;
@@ -232,27 +278,19 @@ function Row({ title, subtitle, right, last }: {
     <View style={{
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: 12,
+      paddingVertical: spacing.md,
       borderBottomWidth: last ? 0 : 1,
-      borderBottomColor: '#F3F4F6',
+      borderBottomColor: theme.border,
     }}>
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 15, fontWeight: '600', color: '#111827' }}>{title}</Text>
+        <Text style={{ fontSize: 15, fontWeight: '600', color: theme.textPrimary }}>{title}</Text>
         {subtitle && (
-          <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{subtitle}</Text>
+          <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>{subtitle}</Text>
         )}
       </View>
       {right}
     </View>
   );
 }
-
-const cardStyle = {
-  backgroundColor: '#FFF',
-  borderRadius: 12,
-  padding: 16,
-  borderWidth: 1,
-  borderColor: '#F3F4F6',
-};
 
 export default SettingsPage;

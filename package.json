@@ -5,6 +5,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "start": "expo start",
+    "dev": "powershell -ExecutionPolicy Bypass -File ./start.ps1",
     "prebuild": "expo prebuild",
     "lint": "eslint \"**/*.{js,jsx,ts,tsx}\" && prettier -c \"**/*.{js,jsx,ts,tsx,json}\"",
     "format": "eslint \"**/*.{js,jsx,ts,tsx}\" --fix && prettier \"**/*.{js,jsx,ts,tsx,json}\" --write",
@@ -13,6 +14,8 @@
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
     "expo": "^54.0.0",
+    "expo-image-manipulator": "~14.0.8",
+    "expo-image-picker": "~17.0.11",
     "expo-status-bar": "~3.0.8",
     "nativewind": "latest",
     "react": "19.1.0",

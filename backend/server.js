@@ -9,6 +9,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const parseAllergens = (raw) => {
+  try { return JSON.parse(raw || '[]'); } catch { return []; }
+};
+
 const toUserDTO = (row) => ({
   id: row.id,
   name: row.name,
@@ -16,6 +20,7 @@ const toUserDTO = (row) => ({
   diabetesType: row.diabetes_type,
   targetMin: row.target_min,
   targetMax: row.target_max,
+  allergens: parseAllergens(row.allergens),
 });
 
 const toReadingDTO = (row) => ({
@@ -59,6 +64,23 @@ app.put('/api/user', (req, res) => {
 
   const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(DEMO_USER_ID);
   res.json(toUserDTO(updated));
+});
+
+// --- PREFERENCES (alerjenler — kullanici geneli) ---
+app.get('/api/preferences', (req, res) => {
+  const row = db.prepare('SELECT allergens FROM users WHERE id = ?').get(DEMO_USER_ID);
+  if (!row) return res.status(404).json({ error: 'Kullanici bulunamadi.' });
+  res.json({ allergens: parseAllergens(row.allergens) });
+});
+
+app.put('/api/preferences', (req, res) => {
+  const { allergens } = req.body;
+  if (!Array.isArray(allergens) || !allergens.every((a) => typeof a === 'string')) {
+    return res.status(400).json({ error: 'allergens string dizisi olmali.' });
+  }
+  db.prepare('UPDATE users SET allergens = ? WHERE id = ?')
+    .run(JSON.stringify(allergens), DEMO_USER_ID);
+  res.json({ allergens });
 });
 
 // --- READINGS ---
@@ -239,6 +261,63 @@ app.delete('/api/activities/:id', (req, res) => {
     'DELETE FROM activities WHERE id = ? AND user_id = ?'
   ).run(id, DEMO_USER_ID);
   if (result.changes === 0) return res.status(404).json({ error: 'Aktivite bulunamadı.' });
+  res.json({ ok: true });
+});
+
+// --- WATER INTAKE ---
+const WATER_GOAL_ML = 2000; // gunluk hedef: 8 bardak * 250ml
+
+app.get('/api/water/today', (req, res) => {
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const row = db.prepare(`
+    SELECT COALESCE(SUM(amount_ml), 0) AS total
+    FROM water_intakes
+    WHERE user_id = ? AND consumed_at >= ?
+  `).get(DEMO_USER_ID, startOfDay.toISOString());
+
+  const consumed = row.total || 0;
+  res.json({
+    consumedMl: consumed,
+    goalMl: WATER_GOAL_ML,
+    progress: Math.min(1, consumed / WATER_GOAL_ML),
+    glasses: Math.floor(consumed / 250),
+    glassMl: 250,
+  });
+});
+
+app.post('/api/water', (req, res) => {
+  const amount = Number(req.body?.amountMl) || 250;
+  if (amount <= 0 || amount > 2000) {
+    return res.status(400).json({ error: 'amountMl 1-2000 araliginda olmali.' });
+  }
+  db.prepare(`
+    INSERT INTO water_intakes (user_id, amount_ml, consumed_at)
+    VALUES (?, ?, ?)
+  `).run(DEMO_USER_ID, Math.round(amount), new Date().toISOString());
+
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const row = db.prepare(`
+    SELECT COALESCE(SUM(amount_ml), 0) AS total
+    FROM water_intakes
+    WHERE user_id = ? AND consumed_at >= ?
+  `).get(DEMO_USER_ID, startOfDay.toISOString());
+
+  res.status(201).json({
+    consumedMl: row.total || 0,
+    goalMl: WATER_GOAL_ML,
+    progress: Math.min(1, (row.total || 0) / WATER_GOAL_ML),
+    glasses: Math.floor((row.total || 0) / 250),
+    glassMl: 250,
+  });
+});
+
+app.delete('/api/water/today', (req, res) => {
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  db.prepare('DELETE FROM water_intakes WHERE user_id = ? AND consumed_at >= ?')
+    .run(DEMO_USER_ID, startOfDay.toISOString());
   res.json({ ok: true });
 });
 

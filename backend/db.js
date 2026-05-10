@@ -14,7 +14,8 @@ db.exec(`
     age INTEGER,
     diabetes_type TEXT,
     target_min INTEGER NOT NULL DEFAULT 70,
-    target_max INTEGER NOT NULL DEFAULT 140
+    target_max INTEGER NOT NULL DEFAULT 140,
+    allergens TEXT NOT NULL DEFAULT '[]'
   );
 
   CREATE TABLE IF NOT EXISTS glucose_readings (
@@ -51,6 +52,23 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_activities_user_time
     ON activities(user_id, occurred_at DESC);
+
+  CREATE TABLE IF NOT EXISTS water_intakes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    amount_ml INTEGER NOT NULL,
+    consumed_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_water_user_time
+    ON water_intakes(user_id, consumed_at DESC);
 `);
+
+// Migration: var olan users tablolarına allergens kolonunu ekle
+const userCols = db.prepare('PRAGMA table_info(users)').all();
+if (!userCols.some((c) => c.name === 'allergens')) {
+  db.exec("ALTER TABLE users ADD COLUMN allergens TEXT NOT NULL DEFAULT '[]'");
+}
 
 module.exports = db;

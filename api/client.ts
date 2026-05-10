@@ -4,10 +4,13 @@ import {
   Activity,
   ActivityResponse,
   ActivityType,
+  AllergenId,
   GlucoseReading,
+  Preferences,
   Settings,
   StepsToday,
   User,
+  WaterToday,
 } from '../types';
 
 const BACKEND_PORT = 3001;
@@ -94,6 +97,24 @@ export const deleteActivity = (id: number) =>
 
 // --- STEPS ---
 export const getStepsToday = () => request<StepsToday>('/api/steps/today');
+
+// --- WATER ---
+export const getWaterToday = () => request<WaterToday>('/api/water/today');
+export const addWater = (amountMl = 250) =>
+  request<WaterToday>('/api/water', {
+    method: 'POST',
+    body: JSON.stringify({ amountMl }),
+  });
+export const resetWaterToday = () =>
+  request<{ ok: true }>('/api/water/today', { method: 'DELETE' });
+
+// --- PREFERENCES (alerjenler) ---
+export const getPreferences = () => request<Preferences>('/api/preferences');
+export const updatePreferences = (allergens: AllergenId[]) =>
+  request<Preferences>('/api/preferences', {
+    method: 'PUT',
+    body: JSON.stringify({ allergens }),
+  });
 
 // --- SETTINGS ---
 export const getSettings = () => request<Settings>('/api/settings');

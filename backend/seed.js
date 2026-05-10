@@ -5,6 +5,8 @@ const reset = process.argv.includes('--reset');
 
 if (reset) {
   db.exec(`
+    DELETE FROM water_intakes;
+    DELETE FROM activities;
     DELETE FROM glucose_readings;
     DELETE FROM settings;
     DELETE FROM users;

@@ -1,5 +1,58 @@
 export type Level = 'Normal' | 'Dikkat Edilmeli' | 'Yüksek';
-export type TabName = 'Ana Sayfa' | 'Sağlık' | 'Arama' | 'Profil' | 'Ayarlar';
+export type TabName = 'Ana Sayfa' | 'Sağlık' | 'Beslenme' | 'Profil' | 'Ayarlar';
+
+export type AllergenId = 'fistik' | 'sut' | 'ceviz' | 'gluten' | 'yumurta' | 'soya';
+
+export interface AllergenOption {
+  id: AllergenId;
+  label: string;
+  icon: string;
+}
+
+export const ALLERGEN_OPTIONS: AllergenOption[] = [
+  { id: 'fistik',  label: 'Fıstık',  icon: '🥜' },
+  { id: 'sut',     label: 'Süt',     icon: '🥛' },
+  { id: 'ceviz',   label: 'Ceviz',   icon: '🌰' },
+  { id: 'gluten',  label: 'Gluten',  icon: '🌾' },
+  { id: 'yumurta', label: 'Yumurta', icon: '🥚' },
+  { id: 'soya',    label: 'Soya',    icon: '🫘' },
+];
+
+export interface NutritionMeal {
+  id: string;
+  name: string;
+  icon: string;
+  calories: number;
+  carbs: 'low' | 'medium' | 'high';
+  allergens: AllergenId[];
+  description: string;
+}
+
+export interface WaterToday {
+  consumedMl: number;
+  goalMl: number;
+  progress: number;
+  glasses: number;
+  glassMl: number;
+}
+
+export interface Preferences {
+  allergens: AllergenId[];
+}
+
+export interface FoodRecognitionAlt {
+  ad: string;
+  skor: number;
+}
+
+export interface FoodRecognitionResult {
+  ad: string;
+  ad_en: string;
+  guven_skoru: number;
+  tahmini_kalori_kcal: number;
+  uyari: string | null;
+  alternatif_tahminler: FoodRecognitionAlt[];
+}
 
 export interface LevelConfig {
   color: string;
@@ -32,6 +85,7 @@ export interface User {
   diabetesType: string;
   targetMin: number;
   targetMax: number;
+  allergens?: AllergenId[];
 }
 
 export interface GlucoseReading {

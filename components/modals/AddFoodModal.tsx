@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -7,9 +7,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { ActivityResponse, FoodPreset } from '../../types';
+import { ActivityResponse, FoodPreset, FoodRecognitionResult } from '../../types';
 import { addActivity } from '../../api/client';
 import CameraModal from './CameraModal';
+import { useTheme } from '../../theme/ThemeContext';
 
 interface AddFoodModalProps {
   visible: boolean;
@@ -17,7 +18,6 @@ interface AddFoodModalProps {
   onAdded: (response: ActivityResponse) => void;
 }
 
-// DEMO: Hazır besin listesi. Gerçek uygulamada veritabanından gelir.
 const FOOD_PRESETS: FoodPreset[] = [
   { id: 'salad',  name: 'Tavuk Salata',         calories: 350, icon: '🥗' },
   { id: 'soup',   name: 'Mercimek Çorbası',     calories: 200, icon: '🍲' },
@@ -28,17 +28,39 @@ const FOOD_PRESETS: FoodPreset[] = [
 ];
 
 function AddFoodModal({ visible, onClose, onAdded }: AddFoodModalProps) {
-  // DEMO: Varsayılan olarak ilk öğe seçili
+  const { theme } = useTheme();
   const [selectedId, setSelectedId] = useState<string>(FOOD_PRESETS[0].id);
   const [submitting, setSubmitting] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
 
+  const [recognized, setRecognized] = useState<FoodRecognitionResult | null>(null);
+  const [useRecognized, setUseRecognized] = useState(false);
+
+  // Modal kapanirken tanima sonucunu da temizle
+  useEffect(() => {
+    if (!visible) {
+      setRecognized(null);
+      setUseRecognized(false);
+      setSelectedId(FOOD_PRESETS[0].id);
+    }
+  }, [visible]);
+
   const handleSubmit = async () => {
-    const preset = FOOD_PRESETS.find((f) => f.id === selectedId);
-    if (!preset) return;
+    let name: string;
+    let calories: number;
+    if (useRecognized && recognized) {
+      // DEMO: Kalori -> kan sekeri formulu helpers.ts'te (kalori/10)
+      name = `📷 ${recognized.ad}`;
+      calories = recognized.tahmini_kalori_kcal;
+    } else {
+      const preset = FOOD_PRESETS.find((f) => f.id === selectedId);
+      if (!preset) return;
+      name = preset.name;
+      calories = preset.calories;
+    }
     setSubmitting(true);
     try {
-      const response = await addActivity('food', preset.name, preset.calories);
+      const response = await addActivity('food', name, calories);
       onAdded(response);
       onClose();
     } catch (e: any) {
@@ -51,9 +73,9 @@ function AddFoodModal({ visible, onClose, onAdded }: AddFoodModalProps) {
   return (
     <>
       <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+        <View style={{ flex: 1, backgroundColor: theme.overlay, justifyContent: 'flex-end' }}>
           <View style={{
-            backgroundColor: '#FFF',
+            backgroundColor: theme.surface,
             borderTopLeftRadius: 20,
             borderTopRightRadius: 20,
             paddingHorizontal: 16,
@@ -66,17 +88,17 @@ function AddFoodModal({ visible, onClose, onAdded }: AddFoodModalProps) {
               width: 40,
               height: 4,
               borderRadius: 2,
-              backgroundColor: '#D1D5DB',
+              backgroundColor: theme.border,
               marginBottom: 12,
             }} />
 
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-              <Text style={{ fontSize: 20, fontWeight: '800', color: '#111827' }}>Besin Ekle</Text>
+              <Text style={{ fontSize: 20, fontWeight: '800', color: theme.textPrimary }}>Besin Ekle</Text>
               <TouchableOpacity onPress={onClose} style={{ marginLeft: 'auto', padding: 4 }}>
-                <Text style={{ fontSize: 20, color: '#6B7280' }}>×</Text>
+                <Text style={{ fontSize: 20, color: theme.textSecondary }}>×</Text>
               </TouchableOpacity>
             </View>
-            <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>
+            <Text style={{ fontSize: 13, color: theme.textSecondary, marginBottom: 16 }}>
               Bir öğün seçin veya kamerayla analiz edin
             </Text>
 
@@ -86,47 +108,86 @@ function AddFoodModal({ visible, onClose, onAdded }: AddFoodModalProps) {
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                backgroundColor: '#4F46E5',
+                backgroundColor: theme.swatchDustyRose,
                 paddingVertical: 14,
                 paddingHorizontal: 16,
                 borderRadius: 12,
                 marginBottom: 16,
-                shadowColor: '#4F46E5',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 6,
               }}
             >
               <Text style={{ fontSize: 22, marginRight: 10 }}>📷</Text>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>
+                <Text style={{ color: theme.textOnDark, fontWeight: '700', fontSize: 15 }}>
                   Kamera ile Analiz
                 </Text>
-                <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11 }}>
+                <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11 }}>
                   Yemeği kameraya tutun, otomatik tanınsın
                 </Text>
               </View>
-              <Text style={{ color: '#FFF', fontSize: 18 }}>›</Text>
+              <Text style={{ color: theme.textOnDark, fontSize: 18 }}>›</Text>
             </TouchableOpacity>
 
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#111827', marginBottom: 8 }}>
-              Hazır seçenekler
-            </Text>
+            <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+              {/* Tanınan kart (varsa) */}
+              {recognized && (
+                <TouchableOpacity
+                  onPress={() => setUseRecognized(true)}
+                  activeOpacity={0.7}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    borderWidth: 2,
+                    borderColor: useRecognized ? theme.success : theme.border,
+                    backgroundColor: useRecognized ? theme.successSoft : theme.surface,
+                    borderRadius: 12,
+                    padding: 14,
+                    marginBottom: 12,
+                  }}
+                >
+                  <Text style={{ fontSize: 28, marginRight: 12 }}>✨</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 11, color: theme.success, fontWeight: '700', marginBottom: 2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      Tanınan
+                    </Text>
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: theme.textPrimary }}>
+                      {recognized.ad}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>
+                      ~{recognized.tahmini_kalori_kcal} kcal · Güven: %{Math.round(recognized.guven_skoru * 100)}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setRecognized(null);
+                      setUseRecognized(false);
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    style={{ paddingHorizontal: 6 }}
+                  >
+                    <Text style={{ fontSize: 18, color: theme.textMuted }}>×</Text>
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              )}
 
-            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: theme.textPrimary, marginBottom: 8 }}>
+                Hazır seçenekler
+              </Text>
+
               {FOOD_PRESETS.map((item) => {
-                const selected = selectedId === item.id;
+                const selected = !useRecognized && selectedId === item.id;
                 return (
                   <TouchableOpacity
                     key={item.id}
-                    onPress={() => setSelectedId(item.id)}
+                    onPress={() => {
+                      setSelectedId(item.id);
+                      setUseRecognized(false);
+                    }}
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
                       borderWidth: selected ? 2 : 1,
-                      borderColor: selected ? '#10B981' : '#E5E7EB',
-                      backgroundColor: selected ? '#ECFDF5' : '#FFF',
+                      borderColor: selected ? theme.accent : theme.border,
+                      backgroundColor: selected ? theme.accentSoft : theme.surface,
                       borderRadius: 12,
                       padding: 14,
                       marginBottom: 8,
@@ -135,10 +196,10 @@ function AddFoodModal({ visible, onClose, onAdded }: AddFoodModalProps) {
                   >
                     <Text style={{ fontSize: 28, marginRight: 12 }}>{item.icon}</Text>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827' }}>
+                      <Text style={{ fontSize: 15, fontWeight: '700', color: theme.textPrimary }}>
                         {item.name}
                       </Text>
-                      <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
+                      <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>
                         ~{item.calories} kcal
                       </Text>
                     </View>
@@ -147,12 +208,12 @@ function AddFoodModal({ visible, onClose, onAdded }: AddFoodModalProps) {
                       height: 22,
                       borderRadius: 11,
                       borderWidth: 2,
-                      borderColor: selected ? '#10B981' : '#D1D5DB',
-                      backgroundColor: selected ? '#10B981' : 'transparent',
+                      borderColor: selected ? theme.accent : theme.border,
+                      backgroundColor: selected ? theme.accent : 'transparent',
                       justifyContent: 'center',
                       alignItems: 'center',
                     }}>
-                      {selected && <Text style={{ color: '#FFF', fontSize: 12, fontWeight: 'bold' }}>✓</Text>}
+                      {selected && <Text style={{ color: theme.accentText, fontSize: 12, fontWeight: 'bold' }}>✓</Text>}
                     </View>
                   </TouchableOpacity>
                 );
@@ -164,14 +225,14 @@ function AddFoodModal({ visible, onClose, onAdded }: AddFoodModalProps) {
               disabled={submitting}
               style={{
                 marginTop: 12,
-                backgroundColor: '#10B981',
+                backgroundColor: theme.accent,
                 borderRadius: 12,
                 paddingVertical: 14,
                 alignItems: 'center',
                 opacity: submitting ? 0.6 : 1,
               }}
             >
-              <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>
+              <Text style={{ color: theme.accentText, fontWeight: '700', fontSize: 15 }}>
                 {submitting ? 'Ekleniyor...' : 'Ekle'}
               </Text>
             </TouchableOpacity>
@@ -182,9 +243,9 @@ function AddFoodModal({ visible, onClose, onAdded }: AddFoodModalProps) {
       <CameraModal
         visible={cameraOpen}
         onClose={() => setCameraOpen(false)}
-        onAnalyzed={() => {
-          // DEMO: Analiz sonucu mock — varsayılan seçim ile devam et
-          // Gerçek entegrasyonda algılanan yemeğe göre selectedId güncellenir.
+        onAnalyzed={(r) => {
+          setRecognized(r);
+          setUseRecognized(true);
         }}
       />
     </>
