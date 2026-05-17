@@ -1,5 +1,9 @@
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const { spawn } = require('child_process');
+const multer = require('multer');
 const db = require('./db');
 
 const DEMO_USER_ID = 66357;
@@ -382,6 +386,312 @@ app.get('/api/steps/today', (req, res) => {
     goal: 10000,
     progress: Math.min(1, steps / 10000),
   });
+});
+
+// --- LAB RESULTS (e-Nabız PDF yüklemeleri) ---
+
+const LAB_UPLOAD_DIR = path.join(__dirname, 'uploads', 'lab_results');
+fs.mkdirSync(LAB_UPLOAD_DIR, { recursive: true });
+
+const PYTHON_BIN =
+  process.env.PYTHON_BIN ||
+  (process.platform === 'win32' ? 'python' : 'python3');
+
+// Profilde gösterilen highlight parametreler (HonyAI için kritik 5).
+const LAB_HIGHLIGHT_KEYS = [
+  'glike_hemoglobin',
+  'glukoz',
+  'insulin',
+  'kreatinin',
+  'ldl_kolesterol',
+];
+
+const labUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, LAB_UPLOAD_DIR),
+    filename: (req, file, cb) => {
+      const ts = Date.now();
+      const safe = (file.originalname || 'tahlil.pdf').replace(/[^\w.-]+/g, '_');
+      cb(null, `${ts}_${safe}`);
+    },
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (req, file, cb) => {
+    const isPdf =
+      file.mimetype === 'application/pdf' || /\.pdf$/i.test(file.originalname || '');
+    if (isPdf) return cb(null, true);
+    cb(new Error('Sadece PDF dosyaları kabul edilir'));
+  },
+});
+
+function runLabParser(pdfAbsPath) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(PYTHON_BIN, ['-m', 'lab_parser.cli', pdfAbsPath], {
+      cwd: __dirname,
+    });
+    let stdout = '';
+    let stderr = '';
+    proc.stdout.on('data', (d) => { stdout += d.toString('utf8'); });
+    proc.stderr.on('data', (d) => { stderr += d.toString('utf8'); });
+    proc.on('error', (err) => {
+      reject(new Error(`Python başlatılamadı (${PYTHON_BIN}): ${err.message}`));
+    });
+    proc.on('close', (code) => {
+      if (code !== 0) {
+        return reject(new Error(
+          `Parser exit ${code}: ${stderr.trim() || 'bilinmeyen hata'}`
+        ));
+      }
+      try {
+        resolve(JSON.parse(stdout));
+      } catch (e) {
+        reject(new Error(
+          `Parser JSON döndürmedi: ${e.message}. İlk 500 char: ${stdout.slice(0, 500)}`
+        ));
+      }
+    });
+  });
+}
+
+function relPathFromBackend(absPath) {
+  return path.relative(__dirname, absPath).replace(/\\/g, '/');
+}
+
+function insertLabResult(userId, parsed, file) {
+  const params = Object.entries(parsed.parameters || {});
+  const abnormalCount = Number.isFinite(parsed.abnormal_count) ? parsed.abnormal_count : 0;
+
+  const tx = db.transaction(() => {
+    const result = db.prepare(`
+      INSERT INTO lab_results
+        (user_id, test_date, test_time, facility, patient_name, patient_gender,
+         patient_birth_date, abnormal_count, source_pdf_path, source_file_name,
+         status, extractor_version, processed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'processed', ?, datetime('now'))
+    `).run(
+      userId,
+      parsed.test_date || null,
+      parsed.test_time || null,
+      parsed.facility || null,
+      parsed.patient?.name || null,
+      parsed.patient?.gender || null,
+      parsed.patient?.birth_date || null,
+      abnormalCount,
+      file.path,
+      file.originalName,
+      parsed.extractor_version || null
+    );
+    const labId = result.lastInsertRowid;
+
+    const insertParam = db.prepare(`
+      INSERT INTO lab_parameters
+        (lab_result_id, param_key, raw_label, value, unit, ref_min, ref_max, is_abnormal, category)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const [key, p] of params) {
+      if (!Number.isFinite(p?.value)) continue;
+      insertParam.run(
+        labId,
+        key,
+        p.raw_label || null,
+        p.value,
+        p.unit || null,
+        Number.isFinite(p.ref_min) ? p.ref_min : null,
+        Number.isFinite(p.ref_max) ? p.ref_max : null,
+        p.is_abnormal ? 1 : 0,
+        p.category || 'unknown'
+      );
+    }
+    return labId;
+  });
+
+  return tx();
+}
+
+function insertFailedLabResult(userId, file, errorMessage) {
+  const result = db.prepare(`
+    INSERT INTO lab_results
+      (user_id, source_pdf_path, source_file_name, status, error_message, processed_at)
+    VALUES (?, ?, ?, 'failed', ?, datetime('now'))
+  `).run(userId, file.path, file.originalName, errorMessage);
+  return result.lastInsertRowid;
+}
+
+function getLabResultListItem(row) {
+  const cnt = db.prepare(
+    'SELECT COUNT(*) AS c FROM lab_parameters WHERE lab_result_id = ?'
+  ).get(row.id).c;
+  return {
+    id: row.id,
+    testDate: row.test_date,
+    testTime: row.test_time,
+    facility: row.facility,
+    patientName: row.patient_name,
+    patientGender: row.patient_gender,
+    patientBirthDate: row.patient_birth_date,
+    abnormalCount: row.abnormal_count,
+    parameterCount: cnt,
+    sourceFileName: row.source_file_name,
+    status: row.status,
+    errorMessage: row.error_message,
+    extractorVersion: row.extractor_version,
+    processedAt: row.processed_at,
+    createdAt: row.created_at,
+  };
+}
+
+function getLabResultDetail(id, userId) {
+  const row = db.prepare(
+    'SELECT * FROM lab_results WHERE id = ? AND user_id = ?'
+  ).get(id, userId);
+  if (!row) return null;
+
+  const params = db.prepare(`
+    SELECT param_key, raw_label, value, unit, ref_min, ref_max, is_abnormal, category
+    FROM lab_parameters WHERE lab_result_id = ?
+  `).all(id);
+
+  const parameters = {};
+  for (const p of params) {
+    parameters[p.param_key] = {
+      rawLabel: p.raw_label,
+      value: p.value,
+      unit: p.unit,
+      refMin: p.ref_min,
+      refMax: p.ref_max,
+      isAbnormal: !!p.is_abnormal,
+      category: p.category,
+    };
+  }
+
+  return { ...getLabResultListItem(row), parameters };
+}
+
+// Liste — yeniden eskiye
+app.get('/api/lab-results', (req, res) => {
+  const rows = db.prepare(`
+    SELECT * FROM lab_results
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+  `).all(DEMO_USER_ID);
+  res.json(rows.map(getLabResultListItem));
+});
+
+// Özet — profil kartı için en son tahlilin highlight değerleri (route :id'den ÖNCE)
+app.get('/api/lab-results/summary', (req, res) => {
+  const latest = db.prepare(`
+    SELECT id, test_date, abnormal_count, created_at
+    FROM lab_results
+    WHERE user_id = ? AND status = 'processed'
+    ORDER BY created_at DESC
+    LIMIT 1
+  `).get(DEMO_USER_ID);
+
+  if (!latest) return res.json(null);
+
+  const placeholders = LAB_HIGHLIGHT_KEYS.map(() => '?').join(',');
+  const params = db.prepare(`
+    SELECT param_key, value, unit, is_abnormal, ref_min, ref_max
+    FROM lab_parameters
+    WHERE lab_result_id = ? AND param_key IN (${placeholders})
+  `).all(latest.id, ...LAB_HIGHLIGHT_KEYS);
+
+  const values = {};
+  for (const p of params) {
+    values[p.param_key] = {
+      value: p.value,
+      unit: p.unit,
+      isAbnormal: !!p.is_abnormal,
+      refMin: p.ref_min,
+      refMax: p.ref_max,
+    };
+  }
+
+  res.json({
+    labResultId: latest.id,
+    testDate: latest.test_date,
+    abnormalCount: latest.abnormal_count,
+    values,
+    createdAt: latest.created_at,
+  });
+});
+
+// Detay
+app.get('/api/lab-results/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Geçersiz id' });
+
+  const detail = getLabResultDetail(id, DEMO_USER_ID);
+  if (!detail) return res.status(404).json({ error: 'Tahlil bulunamadı' });
+  res.json(detail);
+});
+
+// Sil
+app.delete('/api/lab-results/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Geçersiz id' });
+
+  const row = db.prepare(
+    'SELECT source_pdf_path FROM lab_results WHERE id = ? AND user_id = ?'
+  ).get(id, DEMO_USER_ID);
+  if (!row) return res.status(404).json({ error: 'Tahlil bulunamadı' });
+
+  db.prepare('DELETE FROM lab_results WHERE id = ? AND user_id = ?')
+    .run(id, DEMO_USER_ID);
+
+  if (row.source_pdf_path) {
+    const abs = path.resolve(__dirname, row.source_pdf_path);
+    fs.promises.unlink(abs).catch(() => {});
+  }
+  res.json({ ok: true });
+});
+
+// Yükleme — multipart/form-data, alan adı: 'pdf'
+app.post('/api/lab-uploads', labUpload.single('pdf'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({
+      error: 'PDF dosyası gönderilmedi (form alanı adı: "pdf")',
+    });
+  }
+
+  const file = {
+    path: relPathFromBackend(req.file.path),
+    absPath: req.file.path,
+    originalName: req.file.originalname,
+  };
+
+  try {
+    const parsed = await runLabParser(file.absPath);
+    const labId = insertLabResult(DEMO_USER_ID, parsed, file);
+    const created = getLabResultDetail(labId, DEMO_USER_ID);
+    res.status(201).json(created);
+  } catch (err) {
+    console.error('Lab parser hatası:', err);
+    const failedId = insertFailedLabResult(
+      DEMO_USER_ID,
+      file,
+      (err && err.message) ? err.message : String(err)
+    );
+    res.status(500).json({
+      error: 'PDF işlenemedi',
+      detail: err && err.message ? err.message : String(err),
+      labResultId: failedId,
+    });
+  }
+});
+
+// Multer/yükleme hata yakalayıcı (genel hata middleware'inden ÖNCE)
+app.use((err, req, res, next) => {
+  if (err && err.name === 'MulterError') {
+    return res.status(400).json({
+      error: `Yükleme hatası: ${err.message}`,
+      code: err.code,
+    });
+  }
+  if (err && /Sadece PDF/.test(err.message || '')) {
+    return res.status(400).json({ error: err.message });
+  }
+  next(err);
 });
 
 // --- HEALTHCHECK ---

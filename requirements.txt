@@ -1,0 +1,14 @@
+tensorflow>=2.15
+pandas>=2.0
+numpy>=1.24
+scikit-learn>=1.3
+matplotlib>=3.7
+seaborn>=0.12
+simglucose>=0.2.10
+openpyxl>=3.1
+pyarrow>=14.0
+jupyter>=1.0
+tqdm>=4.66
+
+# backend/lab_parser — e-Nabız PDF parser (Node child_process tarafından çağrılır)
+pdfplumber>=0.10.3

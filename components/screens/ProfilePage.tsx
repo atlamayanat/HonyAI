@@ -13,6 +13,12 @@ import { getPreferences, getReadings, updatePreferences, updateUser } from '../.
 import { useTheme } from '../../theme/ThemeContext';
 import { ThemeTokens } from '../../theme/tokens';
 import AllergenSelector from '../AllergenSelector';
+import LabSummaryCard from '../lab/LabSummaryCard';
+import UploadLabButton from '../lab/UploadLabButton';
+import LabResultsListScreen from '../lab/LabResultsListScreen';
+import LabResultDetailScreen from '../lab/LabResultDetailScreen';
+
+type LabScreen = 'main' | 'list' | 'detail';
 
 interface ProfilePageProps {
   user: User | null;
@@ -34,6 +40,10 @@ function ProfilePage({ user, refreshKey, onUserChanged }: ProfilePageProps) {
 
   const [allergens, setAllergens] = useState<AllergenId[]>([]);
   const [savingAllergens, setSavingAllergens] = useState(false);
+
+  const [labScreen, setLabScreen] = useState<LabScreen>('main');
+  const [selectedLabId, setSelectedLabId] = useState<number | null>(null);
+  const [labRefreshKey, setLabRefreshKey] = useState(0);
 
   useEffect(() => {
     getPreferences()
@@ -131,6 +141,32 @@ function ProfilePage({ user, refreshKey, onUserChanged }: ProfilePageProps) {
     }
   };
 
+  if (labScreen === 'list') {
+    return (
+      <LabResultsListScreen
+        refreshKey={labRefreshKey}
+        onBack={() => setLabScreen('main')}
+        onSelect={(id) => {
+          setSelectedLabId(id);
+          setLabScreen('detail');
+        }}
+      />
+    );
+  }
+
+  if (labScreen === 'detail' && selectedLabId != null) {
+    return (
+      <LabResultDetailScreen
+        labId={selectedLabId}
+        onBack={() => setLabScreen('list')}
+        onDeleted={() => {
+          setLabRefreshKey((k) => k + 1);
+          setLabScreen('list');
+        }}
+      />
+    );
+  }
+
   if (!user) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.bg }}>
@@ -203,6 +239,23 @@ function ProfilePage({ user, refreshKey, onUserChanged }: ProfilePageProps) {
             </Text>
           </View>
         </View>
+      </View>
+
+      <Text style={{ fontSize: 16, fontWeight: '700', color: theme.textPrimary, marginTop: 24, marginBottom: 12 }}>
+        Kan Tahlilleri
+      </Text>
+      <View style={{ gap: 10 }}>
+        <LabSummaryCard
+          refreshKey={labRefreshKey}
+          onPress={() => setLabScreen('list')}
+        />
+        <UploadLabButton
+          onUploaded={(uploaded) => {
+            setLabRefreshKey((k) => k + 1);
+            setSelectedLabId(uploaded.id);
+            setLabScreen('detail');
+          }}
+        />
       </View>
 
       <Text style={{ fontSize: 16, fontWeight: '700', color: theme.textPrimary, marginTop: 24, marginBottom: 12 }}>

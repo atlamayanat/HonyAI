@@ -63,6 +63,51 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_water_user_time
     ON water_intakes(user_id, consumed_at DESC);
+
+  -- Kan tahlili sonuçları (e-Nabız PDF yüklemeleri)
+  CREATE TABLE IF NOT EXISTS lab_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    test_date TEXT,                  -- ISO yyyy-mm-dd; PDF'deki tahlil tarihi
+    test_time TEXT,                  -- HH:MM
+    facility TEXT,
+    patient_name TEXT,
+    patient_gender TEXT,
+    patient_birth_date TEXT,
+    abnormal_count INTEGER NOT NULL DEFAULT 0,
+    source_pdf_path TEXT,            -- backend/uploads/... rel path
+    source_file_name TEXT,
+    status TEXT NOT NULL DEFAULT 'processed',  -- 'processed' | 'failed'
+    error_message TEXT,
+    extractor_version TEXT,
+    processed_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_lab_results_user_date
+    ON lab_results(user_id, created_at DESC);
+
+  -- Tahlil parametreleri (her tahlil için 10-50 satır)
+  CREATE TABLE IF NOT EXISTS lab_parameters (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lab_result_id INTEGER NOT NULL,
+    param_key TEXT NOT NULL,         -- 'ldl_kolesterol', 'hgb' vb.
+    raw_label TEXT,                  -- PDF'deki orijinal etiket
+    value REAL NOT NULL,
+    unit TEXT,
+    ref_min REAL,
+    ref_max REAL,
+    is_abnormal INTEGER NOT NULL DEFAULT 0,
+    category TEXT NOT NULL DEFAULT 'unknown',
+    FOREIGN KEY (lab_result_id) REFERENCES lab_results(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_lab_params_result
+    ON lab_parameters(lab_result_id);
+
+  CREATE INDEX IF NOT EXISTS idx_lab_params_user_key
+    ON lab_parameters(lab_result_id, param_key);
 `);
 
 // Migration: var olan users tablolarına allergens kolonunu ekle

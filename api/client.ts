@@ -6,7 +6,11 @@ import {
   ActivityType,
   AllergenId,
   GlucoseReading,
+  LabResult,
+  LabResultListItem,
+  LabSummary,
   MedicationPreset,
+  PickedPdf,
   Preferences,
   Settings,
   StepsToday,
@@ -133,5 +137,55 @@ export const updateSettings = (patch: Partial<Settings>) =>
     method: 'PUT',
     body: JSON.stringify(patch),
   });
+
+// --- LAB RESULTS ---
+export const getLabResults = () =>
+  request<LabResultListItem[]>('/api/lab-results');
+
+export const getLabResult = (id: number) =>
+  request<LabResult>(`/api/lab-results/${id}`);
+
+export const getLabSummary = () =>
+  request<LabSummary | null>('/api/lab-results/summary');
+
+export const deleteLabResult = (id: number) =>
+  request<{ ok: true }>(`/api/lab-results/${id}`, { method: 'DELETE' });
+
+/**
+ * PDF yükleme — multipart/form-data.
+ * Web ve native arasındaki FormData farklarını handle eder:
+ *  - Native: { uri, name, type } objesi (RN konvansiyonu)
+ *  - Web: gerçek Blob (input type=file çıktısı blob URL'i fetch'lenir)
+ */
+export async function uploadLabPdf(file: PickedPdf): Promise<LabResult> {
+  const fd = new FormData();
+
+  if (Platform.OS === 'web') {
+    const blobRes = await fetch(file.uri);
+    const blob = await blobRes.blob();
+    fd.append('pdf', blob, file.name || 'tahlil.pdf');
+  } else {
+    fd.append('pdf', {
+      uri: file.uri,
+      name: file.name || 'tahlil.pdf',
+      type: file.mimeType || 'application/pdf',
+    } as any);
+  }
+
+  const res = await fetch(`${API_BASE}/api/lab-uploads`, {
+    method: 'POST',
+    body: fd as any,
+    // Not: Content-Type'ı set ETMİYORUZ — fetch boundary'yi kendi üretsin.
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const body = await res.json();
+      detail = body.error || body.detail || detail;
+    } catch {}
+    throw new ApiError(detail, res.status);
+  }
+  return (await res.json()) as LabResult;
+}
 
 export { ApiError };

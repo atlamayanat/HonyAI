@@ -148,3 +148,61 @@ export interface MedicationPreset {
   delta: number;
   info: string;
 }
+
+// --- LAB RESULTS (kan tahlilleri) ---
+
+export interface LabParameter {
+  rawLabel: string | null;
+  value: number;
+  unit: string | null;
+  refMin: number | null;
+  refMax: number | null;
+  isAbnormal: boolean;
+  category: string;
+}
+
+export interface LabResultListItem {
+  id: number;
+  testDate: string | null;        // ISO yyyy-mm-dd
+  testTime: string | null;        // HH:MM
+  facility: string | null;
+  patientName: string | null;
+  patientGender: string | null;
+  patientBirthDate: string | null;
+  abnormalCount: number;
+  parameterCount: number;
+  sourceFileName: string | null;
+  status: 'processed' | 'failed';
+  errorMessage: string | null;
+  extractorVersion: string | null;
+  processedAt: string | null;
+  createdAt: string;              // SQLite datetime("now") → 'YYYY-MM-DD HH:MM:SS'
+}
+
+export interface LabResult extends LabResultListItem {
+  parameters: Record<string, LabParameter>;
+}
+
+export interface LabSummaryValue {
+  value: number;
+  unit: string | null;
+  isAbnormal: boolean;
+  refMin: number | null;
+  refMax: number | null;
+}
+
+export interface LabSummary {
+  labResultId: number;
+  testDate: string | null;
+  abnormalCount: number;
+  values: Record<string, LabSummaryValue>;
+  createdAt: string;
+}
+
+// Document picker'dan gelen dosya descriptor'ı (Expo: DocumentPickerAsset)
+export interface PickedPdf {
+  uri: string;
+  name: string;
+  mimeType?: string;
+  size?: number;
+}
