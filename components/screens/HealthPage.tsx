@@ -39,7 +39,7 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
   const [measureModal, setMeasureModal] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [activityTab, setActivityTab] = useState<'food' | 'exercise'>('food');
+  const [activityTab, setActivityTab] = useState<'food' | 'exercise' | 'medication'>('food');
 
   const targetMax = user?.targetMax ?? 140;
 
@@ -342,6 +342,7 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
               {([
                 { id: 'food', label: '🍽️ Yemek' },
                 { id: 'exercise', label: '🏃‍♂️ Egzersiz' },
+                { id: 'medication', label: '💊 İlaç' },
               ] as const).map((t) => (
                 <TouchableOpacity
                   key={t.id}
@@ -377,7 +378,7 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
                     marginBottom: 16,
                   }}>
                     <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
-                      Bu aralıkta {activityTab === 'food' ? 'yemek' : 'egzersiz'} kaydı yok
+                      Bu aralıkta {activityTab === 'food' ? 'yemek' : activityTab === 'exercise' ? 'egzersiz' : 'ilaç'} kaydı yok
                     </Text>
                   </View>
                 );
@@ -385,7 +386,10 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
               return (
                 <>
                   {filtered.map((a) => {
-                    const isFood = a.type === 'food';
+                    const icon =
+                      a.type === 'food' ? '🍽️' : a.type === 'exercise' ? '🏃‍♂️' : '💊';
+                    const showCalories = a.type !== 'medication';
+                    const caloriesPrefix = a.type === 'food' ? '+' : '-';
                     return (
                       <View key={a.id} style={{
                         flexDirection: 'row',
@@ -398,16 +402,14 @@ function HealthPage({ user, refreshKey, onDataChanged }: HealthPageProps) {
                         borderWidth: 1,
                         borderColor: theme.border,
                       }}>
-                        <Text style={{ fontSize: 22, marginRight: 10 }}>
-                          {isFood ? '🍽️' : '🏃‍♂️'}
-                        </Text>
+                        <Text style={{ fontSize: 22, marginRight: 10 }}>{icon}</Text>
                         <View style={{ flex: 1 }}>
                           <Text style={{ fontSize: 14, fontWeight: '700', color: theme.textPrimary }}>
                             {a.name}
                           </Text>
                           <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 2 }}>
-                            {formatMeasuredAt(a.occurredAt)} • {isFood ? '+' : '-'}
-                            {a.calories} kcal
+                            {formatMeasuredAt(a.occurredAt)}
+                            {showCalories && ` • ${caloriesPrefix}${a.calories} kcal`}
                             {a.glucoseDelta != null && (
                               <Text style={{ color: a.glucoseDelta > 0 ? theme.danger : theme.success }}>
                                 {' '}• {a.glucoseDelta > 0 ? '+' : ''}{a.glucoseDelta} mg/dL

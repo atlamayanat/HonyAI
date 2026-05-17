@@ -6,20 +6,22 @@ import { ThemeTokens } from '../../theme/tokens';
 interface QuickActionsProps {
   onAddFood?: () => void;
   onAddExercise?: () => void;
+  onAddMedication?: () => void;
 }
 
-type SwatchKey = 'swatchTerracotta' | 'swatchSage';
+type SwatchKey = 'swatchTerracotta' | 'swatchSage' | 'swatchDustyRose';
 
-function QuickActions({ onAddFood, onAddExercise }: QuickActionsProps) {
+function QuickActions({ onAddFood, onAddExercise, onAddMedication }: QuickActionsProps) {
   const { theme } = useTheme();
 
   const actions: { icon: string; title: string; colorKey: SwatchKey; onPress?: () => void }[] = [
-    { icon: '🍽️', title: 'Besin Ekle',         colorKey: 'swatchTerracotta', onPress: onAddFood },
-    { icon: '🏃‍♂️', title: 'Hareket Verisi Ekle', colorKey: 'swatchSage',       onPress: onAddExercise },
+    { icon: '🍽️', title: 'Besin',  colorKey: 'swatchTerracotta', onPress: onAddFood },
+    { icon: '🏃‍♂️', title: 'Hareket', colorKey: 'swatchSage',       onPress: onAddExercise },
+    { icon: '💊',  title: 'İlaç',   colorKey: 'swatchDustyRose',  onPress: onAddMedication },
   ];
 
   return (
-    <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
+    <View style={{ flexDirection: 'row', gap: 10, marginTop: 24 }}>
       {actions.map((action, index) => {
         const bg = (theme as ThemeTokens)[action.colorKey];
         return (

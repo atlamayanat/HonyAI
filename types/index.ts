@@ -102,7 +102,7 @@ export interface Settings {
   language: 'tr' | 'en';
 }
 
-export type ActivityType = 'food' | 'exercise';
+export type ActivityType = 'food' | 'exercise' | 'medication';
 
 export interface Activity {
   id: number;
@@ -139,4 +139,12 @@ export interface ExercisePreset {
   calories: number;
   icon: string;
   durationMin: number;
+}
+
+export interface MedicationPreset {
+  id: string;
+  name: string;
+  icon: string;
+  delta: number;
+  info: string;
 }

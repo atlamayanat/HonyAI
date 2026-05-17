@@ -15,6 +15,7 @@ import StepsCard from '../home/StepsCard';
 import WaterCard from '../home/WaterCard';
 import AddFoodModal from '../modals/AddFoodModal';
 import AddExerciseModal from '../modals/AddExerciseModal';
+import AddMedicationModal from '../modals/AddMedicationModal';
 import { getLevel } from '../../utils/helpers';
 import { getLatestReading } from '../../api/client';
 import { ActivityResponse, GlucoseReading, TabName, User } from '../../types';
@@ -35,6 +36,7 @@ function HomePage({ user, onNavigate, refreshKey, onDataChanged }: HomePageProps
 
   const [foodModal, setFoodModal] = useState(false);
   const [exerciseModal, setExerciseModal] = useState(false);
+  const [medicationModal, setMedicationModal] = useState(false);
 
   // Anında animasyonlu güncelleme için ayrı bir görünen değer.
   const animatedValue = useRef(new Animated.Value(0)).current;
@@ -135,6 +137,7 @@ function HomePage({ user, onNavigate, refreshKey, onDataChanged }: HomePageProps
             <QuickActions
               onAddFood={() => setFoodModal(true)}
               onAddExercise={() => setExerciseModal(true)}
+              onAddMedication={() => setMedicationModal(true)}
             />
             <StepsCard refreshKey={refreshKey} />
             <WaterCard refreshKey={refreshKey} onChanged={onDataChanged} />
@@ -167,6 +170,11 @@ function HomePage({ user, onNavigate, refreshKey, onDataChanged }: HomePageProps
       <AddExerciseModal
         visible={exerciseModal}
         onClose={() => setExerciseModal(false)}
+        onAdded={handleActivityAdded}
+      />
+      <AddMedicationModal
+        visible={medicationModal}
+        onClose={() => setMedicationModal(false)}
         onAdded={handleActivityAdded}
       />
     </>

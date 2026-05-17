@@ -6,6 +6,7 @@ import {
   ActivityType,
   AllergenId,
   GlucoseReading,
+  MedicationPreset,
   Preferences,
   Settings,
   StepsToday,
@@ -94,6 +95,15 @@ export const getActivities = (days = 7) =>
   request<Activity[]>(`/api/activities?days=${days}`);
 export const deleteActivity = (id: number) =>
   request<{ ok: true }>(`/api/activities/${id}`, { method: 'DELETE' });
+
+// --- MEDICATIONS ---
+export const getMedicationPresets = () =>
+  request<MedicationPreset[]>('/api/medications/presets');
+export const addMedication = (medicationId: string) =>
+  request<ActivityResponse>('/api/activities', {
+    method: 'POST',
+    body: JSON.stringify({ type: 'medication' as ActivityType, medicationId }),
+  });
 
 // --- STEPS ---
 export const getStepsToday = () => request<StepsToday>('/api/steps/today');

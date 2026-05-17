@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView, StatusBar, Platform, View, Text, TouchableOpacity } from 'react-native';
 
+import ErrorBoundary from './components/ErrorBoundary';
 import Header from './components/Header';
 import ModernTabBar from './components/ModernTabBar';
 import HomePage from './components/screens/HomePage';
@@ -26,9 +27,11 @@ export default function App() {
   if (!settingsLoaded) return null;
 
   return (
-    <ThemeProvider initialMode={initialMode}>
-      <AppInner />
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider initialMode={initialMode}>
+        <AppInner />
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

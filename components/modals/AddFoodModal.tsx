@@ -72,7 +72,7 @@ function AddFoodModal({ visible, onClose, onAdded }: AddFoodModalProps) {
 
   return (
     <>
-      <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Modal visible={visible && !cameraOpen} transparent animationType="slide" onRequestClose={onClose}>
         <View style={{ flex: 1, backgroundColor: theme.overlay, justifyContent: 'flex-end' }}>
           <View style={{
             backgroundColor: theme.surface,

@@ -103,6 +103,14 @@ function CameraModal({ visible, onClose, onAnalyzed }: CameraModalProps) {
 
   const streamRef = useRef<MediaStream | null>(null);
   const videoElRef = useRef<HTMLVideoElement | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const isWeb = Platform.OS === 'web';
 
@@ -136,6 +144,7 @@ function CameraModal({ visible, onClose, onAnalyzed }: CameraModalProps) {
     (async () => {
       try {
         const perm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!mountedRef.current) return;
         if (!perm.granted) {
           setError('Kamera izni reddedildi. Sistem ayarlarından izin verin.');
           setPickerActive(false);
@@ -146,8 +155,8 @@ function CameraModal({ visible, onClose, onAnalyzed }: CameraModalProps) {
           quality: 0.7,
           allowsEditing: false,
         });
+        if (!mountedRef.current) return;
         if (res.canceled) {
-          // Kullanici iptal etti -> modal'i kapat
           onClose();
           return;
         }
@@ -157,11 +166,13 @@ function CameraModal({ visible, onClose, onAnalyzed }: CameraModalProps) {
           return;
         }
         const dataUri = await uriToDataUri(asset.uri);
+        if (!mountedRef.current) return;
         setImageDataUri(dataUri);
       } catch (e: any) {
+        if (!mountedRef.current) return;
         setError(e?.message || 'Kamera açılamadı.');
       } finally {
-        setPickerActive(false);
+        if (mountedRef.current) setPickerActive(false);
       }
     })();
   }, [visible, isWeb, imageDataUri, pickerActive, onClose]);
@@ -193,19 +204,23 @@ function CameraModal({ visible, onClose, onAnalyzed }: CameraModalProps) {
     setPickerActive(true);
     try {
       const res = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         quality: 0.7,
+        allowsEditing: false,
       });
+      if (!mountedRef.current) return;
       if (res.canceled) return;
       const asset = res.assets?.[0];
       if (asset?.uri) {
         const dataUri = await uriToDataUri(asset.uri);
+        if (!mountedRef.current) return;
         setImageDataUri(dataUri);
       }
     } catch (e: any) {
+      if (!mountedRef.current) return;
       setError(e?.message || 'Kamera açılamadı.');
     } finally {
-      setPickerActive(false);
+      if (mountedRef.current) setPickerActive(false);
     }
   };
 
@@ -214,15 +229,19 @@ function CameraModal({ visible, onClose, onAnalyzed }: CameraModalProps) {
     setAnalyzing(true);
     setError(null);
     setColdStart(false);
-    const coldTimer = setTimeout(() => setColdStart(true), 5000);
+    const coldTimer = setTimeout(() => {
+      if (mountedRef.current) setColdStart(true);
+    }, 5000);
     try {
       const r = await recognizeFood(imageDataUri);
+      if (!mountedRef.current) return;
       setResult(r);
     } catch (e: any) {
+      if (!mountedRef.current) return;
       setError(e?.message || 'Analiz başarısız');
     } finally {
       clearTimeout(coldTimer);
-      setAnalyzing(false);
+      if (mountedRef.current) setAnalyzing(false);
     }
   };
 

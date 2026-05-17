@@ -174,12 +174,26 @@ const toActivityDTO = (row) => ({
 });
 
 // DEMO: Basitleştirilmiş kan şekeri simülasyonu — gerçek tıbbi hesaplama değildir.
-//   food:     +calories / 10  (örn. 300 kcal yemek → +30 mg/dL)
-//   exercise: -calories / 15  (örn. 300 kcal yakım → -20 mg/dL)
+//   food:       +calories / 10  (örn. 300 kcal yemek → +30 mg/dL)
+//   exercise:   -calories / 15  (örn. 300 kcal yakım → -20 mg/dL)
+//   medication: ilaç preseti üzerinden sabit düşüş
 //   sonuç 60-300 mg/dL aralığına clamp'lenir.
-function simulateGlucoseDelta(type, calories) {
+const MEDICATION_PRESETS = {
+  lispro:      { name: 'Insulin lispro',    icon: '💉', delta: -65, info: 'Hızlı etkili • 10-15 dk başlangıç' },
+  aspart:      { name: 'Insulin aspart',    icon: '💉', delta: -75, info: 'Hızlı etkili • 10-15 dk başlangıç' },
+  glulisine:   { name: 'Insulin glulisine', icon: '💉', delta: -60, info: 'Çok hızlı etki • zirve 1-1.5 sa' },
+  regular:     { name: 'Regular insulin',   icon: '💉', delta: -40, info: 'Kısa etkili • 30-45 dk başlangıç' },
+  repaglinide: { name: 'Repaglinide',       icon: '💊', delta: -30, info: 'Oral • yemek öncesi' },
+  nateglinide: { name: 'Nateglinide',       icon: '💊', delta: -25, info: 'Oral • hızlı/hafif' },
+};
+
+function simulateGlucoseDelta(type, calories, medicationId) {
   if (type === 'food') return Math.round(calories / 10);
   if (type === 'exercise') return -Math.round(calories / 15);
+  if (type === 'medication') {
+    const preset = MEDICATION_PRESETS[medicationId];
+    return preset ? preset.delta : 0;
+  }
   return 0;
 }
 
@@ -187,21 +201,46 @@ function clampGlucose(value) {
   return Math.max(60, Math.min(300, Math.round(value)));
 }
 
+app.get('/api/medications/presets', (req, res) => {
+  res.json(
+    Object.entries(MEDICATION_PRESETS).map(([id, p]) => ({
+      id,
+      name: p.name,
+      icon: p.icon,
+      delta: p.delta,
+      info: p.info,
+    }))
+  );
+});
+
 app.post('/api/activities', (req, res) => {
-  const { type, name, calories, occurred_at } = req.body;
-  if (type !== 'food' && type !== 'exercise') {
-    return res.status(400).json({ error: 'type "food" veya "exercise" olmalı.' });
+  const { type, name, calories, occurred_at, medicationId } = req.body;
+  if (type !== 'food' && type !== 'exercise' && type !== 'medication') {
+    return res.status(400).json({ error: 'type "food", "exercise" veya "medication" olmalı.' });
   }
-  if (!name || typeof name !== 'string') {
-    return res.status(400).json({ error: 'name zorunlu.' });
-  }
-  const cal = Number(calories);
-  if (!Number.isFinite(cal) || cal < 0 || cal > 5000) {
-    return res.status(400).json({ error: 'calories 0-5000 aralığında olmalı.' });
+
+  let resolvedName = name;
+  let cal = 0;
+
+  if (type === 'medication') {
+    const preset = MEDICATION_PRESETS[medicationId];
+    if (!preset) {
+      return res.status(400).json({ error: 'Geçersiz medicationId.' });
+    }
+    resolvedName = preset.name;
+    cal = 0;
+  } else {
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ error: 'name zorunlu.' });
+    }
+    cal = Number(calories);
+    if (!Number.isFinite(cal) || cal < 0 || cal > 5000) {
+      return res.status(400).json({ error: 'calories 0-5000 aralığında olmalı.' });
+    }
   }
 
   const occurredAt = occurred_at || new Date().toISOString();
-  const delta = simulateGlucoseDelta(type, cal);
+  const delta = simulateGlucoseDelta(type, cal, medicationId);
 
   const lastReading = db.prepare(`
     SELECT * FROM glucose_readings
@@ -211,11 +250,14 @@ app.post('/api/activities', (req, res) => {
   const baseValue = lastReading ? lastReading.value : 110;
   const newValue = clampGlucose(baseValue + delta);
 
+  const noteLabel =
+    type === 'food' ? 'Yemek' : type === 'exercise' ? 'Egzersiz' : 'İlaç';
+
   const tx = db.transaction(() => {
     const aResult = db.prepare(`
       INSERT INTO activities (user_id, type, name, calories, occurred_at, glucose_delta)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run(DEMO_USER_ID, type, name, Math.round(cal), occurredAt, delta);
+    `).run(DEMO_USER_ID, type, resolvedName, Math.round(cal), occurredAt, delta);
 
     db.prepare(`
       INSERT INTO glucose_readings (user_id, value, measured_at, note)
@@ -224,7 +266,7 @@ app.post('/api/activities', (req, res) => {
       DEMO_USER_ID,
       newValue,
       occurredAt,
-      `${type === 'food' ? 'Yemek' : 'Egzersiz'}: ${name}`
+      `${noteLabel}: ${resolvedName}`
     );
 
     return aResult.lastInsertRowid;
