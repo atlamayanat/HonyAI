@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "honeyai",
+			"path": "."
+		},
+		{
+			"name": "HonyAI_Dataset",
+			"path": "../../../Desktop/HonyAI_Dataset"
+		}
+	],
+	"settings": {}
+}
