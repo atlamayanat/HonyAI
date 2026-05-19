@@ -19,6 +19,14 @@ from pathlib import Path
 from .parser import parse_lab_pdf
 from .validator import validate, ValidationError
 
+# Windows'ta Python stdout varsayılanı cp1254 olabiliyor; Node tarafı UTF-8 bekliyor.
+# Türkçe karakterlerin � olarak gelmemesi için stdout/stderr'i UTF-8'e sabitle.
+for stream in (sys.stdout, sys.stderr):
+    try:
+        stream.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 
 def main(argv: list[str]) -> int:
     if len(argv) < 2:

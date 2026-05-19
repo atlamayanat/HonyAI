@@ -428,6 +428,7 @@ function runLabParser(pdfAbsPath) {
   return new Promise((resolve, reject) => {
     const proc = spawn(PYTHON_BIN, ['-m', 'lab_parser.cli', pdfAbsPath], {
       cwd: __dirname,
+      env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' },
     });
     let stdout = '';
     let stderr = '';
