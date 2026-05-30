@@ -1,5 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView, StatusBar, Platform, View, Text, TouchableOpacity } from 'react-native';
+import { useFonts } from 'expo-font';
+import {
+  Mulish_400Regular,
+  Mulish_500Medium,
+  Mulish_600SemiBold,
+  Mulish_700Bold,
+  Mulish_800ExtraBold,
+} from '@expo-google-fonts/mulish';
+import {
+  Newsreader_500Medium,
+  Newsreader_700Bold,
+} from '@expo-google-fonts/newsreader';
 
 import ErrorBoundary from './components/ErrorBoundary';
 import Header from './components/Header';
@@ -17,6 +29,16 @@ export default function App() {
   const [initialMode, setInitialMode] = useState<'light' | 'dark'>('light');
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
+  const [fontsLoaded] = useFonts({
+    Mulish_400Regular,
+    Mulish_500Medium,
+    Mulish_600SemiBold,
+    Mulish_700Bold,
+    Mulish_800ExtraBold,
+    Newsreader_500Medium,
+    Newsreader_700Bold,
+  });
+
   useEffect(() => {
     getSettings()
       .then((s) => setInitialMode(s.darkMode ? 'dark' : 'light'))
@@ -24,7 +46,7 @@ export default function App() {
       .finally(() => setSettingsLoaded(true));
   }, []);
 
-  if (!settingsLoaded) return null;
+  if (!settingsLoaded || !fontsLoaded) return null;
 
   return (
     <ErrorBoundary>

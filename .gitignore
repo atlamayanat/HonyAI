@@ -27,6 +27,9 @@ web-build/
 ios
 android
 
+# Petek tasarım sistemi — Dart kaynak dosyaları (RN'de derlenmez, referans)
+desing/
+
 # macOS
 .DS_Store
 
